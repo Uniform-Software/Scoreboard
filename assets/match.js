@@ -532,7 +532,13 @@ function renderKartLive() {
   $('kStatus').className = 'kstatus ' + (KF && s.connected && (s.live || K.demo.on) ? 'ok' : KF && s.connected ? 'idle' : '');
   const list = KF ? KF.drivers() : [];
   const nos = [...new Set([...list.map(d => d.no), ...Object.keys(K.names)])].filter(Boolean).sort((a, b) => +a - +b);
-  SB.setText('kCount', nos.length ? nos.length + ' karts' : '');
+  SB.setText('kCount', list.length ? list.length + ' pilotes' : '');
+  // circuit sans numéros de kart : les noms viennent directement d'Apex
+  if (!nos.length && list.length) {
+    const k = 'noNum' + list.length;
+    if (namesKey !== k) { namesKey = k; $('kNames').innerHTML = `<p class="hint">Ce circuit n'envoie pas de numéros de kart : les noms des pilotes viennent directement d'Apex (${list.map(d => SB.esc(d.name)).join(', ')}).</p>`; }
+    return;
+  }
   const key = JSON.stringify(nos.map(no => [no, (list.find(d => d.no === no) || {}).apexName || '']));
   if (key === namesKey) return;
   namesKey = key;

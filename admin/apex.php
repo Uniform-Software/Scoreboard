@@ -8,7 +8,8 @@
 require dirname(__DIR__) . '/api/etat.php';
 
 $url = trim((string) ($_GET['url'] ?? ''));
-if (!preg_match('#^https?://(www\.)?apex-timing\.com/live-timing/([A-Za-z0-9_\-]+)/?#', $url, $m)) {
+// accepte aussi le lien sans « https:// » ni « www. », avec ou sans index.html
+if (!preg_match('#^(?:https?://)?(www\.)?apex-timing\.com/live-timing/([A-Za-z0-9_\-]+)(?:[/?\#]|$)#i', $url, $m)) {
     echec(400, 'Lien Apex Timing attendu : https://www.apex-timing.com/live-timing/<circuit>/index.html');
 }
 $base = 'https://www.apex-timing.com/live-timing/' . $m[2] . '/';

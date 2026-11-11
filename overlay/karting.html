@@ -255,17 +255,19 @@ const shown = key => karting() && (SB.EDIT ? SB.editVisible(key) : !!(A && A[SB.
 
 // Noms : pilote (ou équipe en endurance) en code 3 lettres (MAR), court (L. MARTIN) ou complet
 const plainUp = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
-const fullName = d => (d.team && d.name !== d.team ? d.team : d.name) || 'Kart ' + d.no;
+const fullName = d => (d.team && d.name !== d.team ? d.team : d.name) || (d.no ? 'Kart ' + d.no : 'Pilote');
 const driverOf = d => d.team && d.name !== d.team ? d.name : '';
 function nameOf(d, mode) {
   const team = d.team && d.name !== d.team;
   const main = fullName(d);
   if (/^kart\s*\d+$/i.test(main)) return mode === 'code' ? '#' + d.no : 'Kart ' + d.no;
   if (mode === 'full') return main;
-  if (mode === 'short') return team ? main : SB.shortName(main);
   const w = plainUp(main).replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  // nom réduit à une initiale (« Nathan S ») : on garde le prénom
+  const initialOnly = w.length > 1 && w[w.length - 1].length < 3;
+  if (mode === 'short') return team || initialOnly ? main : SB.shortName(main);
   if (team) return (w.length > 1 ? w.map(x => x[0]).join('') + w[w.length - 1].slice(1) : w[0] || '').slice(0, 3);
-  return (w[w.length - 1] || '').slice(0, 3);
+  return (initialOnly ? w[0] : w[w.length - 1] || '').slice(0, 3);
 }
 // Codes uniques : en cas de doublon (MARTIN / MARCHAND), initiale du prénom + 2 lettres du nom (NMA / LMA)
 let CODES = {};
@@ -279,7 +281,8 @@ function makeCodes(list) {
     let c = base[d.id];
     if (count[c] > 1 && !/^#/.test(c)) {
       const w = plainUp(fullName(d)).replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
-      if (w.length > 1) c = (w[0][0] + w[w.length - 1].slice(0, 2)).slice(0, 3);
+      const last = w[w.length - 1] || '';
+      if (w.length > 1) c = (last.length < 3 ? w[0].slice(0, 2) + last[0] : w[0][0] + last.slice(0, 2)).slice(0, 3);
       let k = 2;
       while (used.has(c)) c = c.slice(0, 2) + k++;
     }
@@ -330,7 +333,7 @@ function renderTower(s, list) {
   setText('tMode', !s.race ? 'Meilleur tour' : K.tower.mode === 'int' ? 'Intervalle' : 'Écart');
   // N premiers, plus le pilote suivi s'il est plus loin (ligne séparée en bas)
   const top = list.slice(0, n);
-  const pinned = focus && !top.some(d => d.no === focus) ? list.find(d => d.no === focus) : null;
+  const pinned = focus && !top.some(d => d.key === focus) ? list.find(d => d.key === focus) : null;
   const visible = pinned ? [...top, pinned] : top;
   const ids = new Set(visible.map(d => d.id));
   for (const id of Object.keys(rows)) if (!ids.has(id)) { rows[id].remove(); delete rows[id]; }
@@ -361,7 +364,7 @@ function renderTower(s, list) {
     g.textContent = gapText(s, d, i);
     g.classList.toggle('lead', i === 0 && s.race && s.flag !== 'finish');
     el.classList.toggle('inpit', d.inPit);
-    el.classList.toggle('focus', d.no === focus);
+    el.classList.toggle('focus', d.key === focus);
     el.classList.toggle('fast', d.id === bestId);
     el.classList.toggle('sep', d === pinned);
   });
@@ -421,7 +424,7 @@ function tickMap() {
       $('mapDots').append(g);
     }
     const pt = geom.path.getPointAtLength(p * geom.len);
-    const focus = d.no === K.focus;
+    const focus = d.key === K.focus;
     g.setAttribute('class', 'dot' + (focus ? ' focus' : ''));
     g.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
     const c = g.querySelector('.c'), r = geom.r * (focus ? 1.3 : 1);
@@ -429,7 +432,7 @@ function tickMap() {
     const ring = g.querySelector('.ring');
     ring.setAttribute('r', focus ? r * 1.5 : 0); ring.setAttribute('stroke-width', r * .3);
     const t = g.querySelector('text');
-    t.textContent = d.no; t.setAttribute('font-size', r * (d.no.length > 2 ? 0.9 : 1.1)); t.setAttribute('fill', d.colorText || '#000');
+    const tag = d.no || (CODES[d.id] || '').slice(0, 2); t.textContent = tag; t.setAttribute('font-size', r * (tag.length > 2 ? 0.9 : 1.1)); t.setAttribute('fill', d.colorText || '#000');
     if (focus) $('mapDots').append(g);
   }
   for (const id of Object.keys(dots)) if (!seen.has(id)) { dots[id].remove(); delete dots[id]; }
@@ -437,10 +440,10 @@ function tickMap() {
 
 /* ---------------- Fiche pilote ---------------- */
 function renderCard(s, list) {
-  const d = K.focus && list.find(x => x.no === K.focus);
+  const d = K.focus && list.find(x => x.key === K.focus);
   if (d) {
     setText('kPos', 'P' + d.pos);
-    setText('kNo', d.no);
+    setText('kNo', d.no || CODES[d.id] || '');
     color($('card'), d);
     setText('kName', fullName(d));
     setText('kTeam', [driverOf(d), s.race && d.laps ? d.laps + ' tours' : '', d.inPit ? 'Aux stands' : ''].filter(Boolean).join(' · ') || (K.title || ''));
@@ -448,8 +451,8 @@ function renderCard(s, list) {
     let html = `<div><small class="cap">Dernier tour</small><b class="num t-${esc(d.lastCls || 'tn')}">${esc(d.last || '—')}</b>${sectors(d)}</div>`;
     html += `<div><small class="cap">Meilleur</small><b class="num ${d.bestCls === 'tb' || (s.best && s.best.id === d.id) ? 't-tb' : ''}">${esc(d.best || '—')}</b></div>`;
     if (s.race) {
-      if (ahead) html += `<div><small class="cap">Devant · ${esc(ahead.no)}</small><b class="num">${esc(diff(d, ahead))}</b></div>`;
-      if (behind) html += `<div><small class="cap">Derrière · ${esc(behind.no)}</small><b class="num">${esc(diff(behind, d))}</b></div>`;
+      if (ahead) html += `<div><small class="cap">Devant · ${esc(ahead.no || label(ahead, 'code'))}</small><b class="num">${esc(diff(d, ahead))}</b></div>`;
+      if (behind) html += `<div><small class="cap">Derrière · ${esc(behind.no || label(behind, 'code'))}</small><b class="num">${esc(diff(behind, d))}</b></div>`;
       if (d.pits) html += `<div><small class="cap">Arrêts</small><b class="num">${esc(d.pits)}</b></div>`;
     } else if (i > 0) html += `<div><small class="cap">Écart</small><b class="num">+${esc((d.gap || '').replace(/^\+/, ''))}</b></div>`;
     $('kStats').innerHTML = html;
@@ -479,7 +482,7 @@ function diff(a, b) {
 let lastDuel = null;
 function renderDuel(s, list) {
   const [na, nb] = K.duel;
-  let a = list.find(d => d.no === na), b = list.find(d => d.no === nb);
+  let a = list.find(d => d.key === na), b = list.find(d => d.key === nb);
   if (a && b && a.pos > b.pos) [a, b] = [b, a];          // a : devant
   const ok = !!(a && b);
   if (ok) {
@@ -493,7 +496,7 @@ function renderDuel(s, list) {
     }
     const g = diff(b, a);
     setText('dGap', g);
-    const v = parseFloat(g), key = a.no + '-' + b.no;
+    const v = parseFloat(g), key = a.key + '-' + b.key;
     if (Number.isFinite(v) && lastDuel && lastDuel.key === key && Math.abs(v - lastDuel.v) > 0.001) {
       setText('dTrend', v < lastDuel.v ? '▼ se rapproche' : '▲ s’éloigne');
       $('dTrend').className = 'cap ' + (v < lastDuel.v ? 'close' : 'open');
@@ -585,7 +588,9 @@ function render() {
   buildMap();
   setText('mTrack', (K.track && K.track.title) || s.track || (K.demo.on ? 'Démo' : ''));
   setText('mInfo', list.length ? list.length + ' karts' : '');
-  $('map').classList.toggle('on', shown('k-map') && list.length > 0);
+  // en direct, pas de tracé publié par le circuit : pas de mini map (le tracé de démo serait faux)
+  const hasTrack = !!(K.track.paths.track || K.track.paths.s1);
+  $('map').classList.toggle('on', shown('k-map') && list.length > 0 && (hasTrack || K.demo.on));
 }
 
 // Temps restant (ou tour en cours) et barre de progression

@@ -35,6 +35,24 @@ const Apex = (() => {
     return m ? `${m}:${s.toFixed(3).padStart(6, '0')}` : s.toFixed(3);
   };
 
+  // Colonnes sans type déclaré : on se fie au titre (les circuits les nomment librement)
+  const LABELS = [
+    [/^(tours?|nb\.? ?tours|laps?|tr)$/, 'tlp'], [/^(kart|n°|no|num|numero|#)$/, 'no'], [/^(pilotes?|drivers?|nom)$/, 'dr'],
+    [/^(equipes?|teams?)$/, 'tea'], [/^(ecart|gap)$/, 'gap'], [/^(interv\.?|intervalle|int\.?|interval)$/, 'int'],
+    [/^(dernier t\.?|dernier tour|last lap)$/, 'llp'], [/^(meilleur t\.?|meilleur tour|best lap)$/, 'blp'],
+    [/^(stands?|pits?|arrets?)$/, 'pit'], [/^s ?1$/, 's1'], [/^s ?2$/, 's2'], [/^s ?3$/, 's3'], [/^(clt|pos\.?|position)$/, 'rk'],
+    [/^km\/h$/, 'spd'], [/^(en piste|temps en piste)$/, 'otr']
+  ];
+  function guess(label) {
+    const t = String(label || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (const [re, type] of LABELS) if (re.test(t)) return type;
+    return t ? 'x-' + t : '';
+  }
+  // Couleur de repli (circuits sans numéros de kart colorés) : stable pour un même pilote
+  const PALETTE = ['#e63946', '#1d6fe0', '#ffd400', '#12b76a', '#ff7a00', '#8b5cf6', '#00b8d9', '#ff4fa3', '#a3e635', '#f97316', '#38bdf8', '#e879f9'];
+  const hue = id => PALETTE[[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % PALETTE.length];
+  const ink = hex => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? '#000000' : '#FFFFFF'; };
+
   /* ====================================================================
      Flux : modèle + analyse des messages
      ==================================================================== */
@@ -60,7 +78,8 @@ const Apex = (() => {
       for (const tr of doc.querySelectorAll('tr[data-id]')) {
         const id = tr.getAttribute('data-id');
         if (id === 'r0' || tr.classList.contains('head')) {
-          for (const td of tr.querySelectorAll('td[data-id]')) M.cols[td.getAttribute('data-id')] = td.getAttribute('data-type') || '';
+          // type déclaré (data-type) ; sinon deviné d'après le titre de la colonne (« Tours », « Kart »…)
+          for (const td of tr.querySelectorAll('td[data-id]')) M.cols[td.getAttribute('data-id')] = td.getAttribute('data-type') || guess(td.textContent);
           continue;
         }
         const row = M.rows[id] = { id, pos: +tr.getAttribute('data-pos') || 0, cells: {}, lap: null, sector: null, pit: null };
@@ -153,10 +172,12 @@ const Apex = (() => {
       // endurance : « ÉQUIPE [PILOTE] » ou « ÉQUIPE - PILOTE » selon les circuits
       const m = raw.match(/^(.*?)\s*[[(](.+)[\])]\s*$/);
       const colors = M.css[cell(r, 'no').cls] || null;
+      const fallback = colors ? '' : hue(r.id);
       return {
-        id: r.id, pos: r.pos, no,
+        // key : identifiant stable du pilote (numéro de kart, ou ligne Apex quand le circuit n'envoie pas de numéro)
+        id: r.id, pos: r.pos, no, key: no || r.id,
         name: nm.name || (m ? m[2] : raw), team: nm.team || cell(r, 'tea').text || (m ? m[1] : ''),
-        apexName: raw, color: colors ? colors.bg : '', colorText: colors ? colors.fg : '',
+        apexName: raw, color: colors ? colors.bg : fallback, colorText: colors ? colors.fg : ink(fallback),
         last: cell(r, 'llp').text, lastCls: cell(r, 'llp').cls, best: cell(r, 'blp').text, bestCls: cell(r, 'blp').cls,
         gap: cell(r, 'gap').text, int: cell(r, 'int').text, laps: cell(r, 'tlp').text, pits: cell(r, 'pit').text,
         otr: cell(r, 'otr').text, sta: cell(r, 'sta').cls, s1: cell(r, 's1').text, s2: cell(r, 's2').text, s3: cell(r, 's3').text,
@@ -225,7 +246,7 @@ const Apex = (() => {
       on: (k, fn) => { handlers[k].push(fn); if (k === 'change') fn(M); },
       receive, session, drivers,
       setNames: n => { names = n || {}; changed(); },
-      driver: no => drivers().find(d => d.no === String(no)) || null,
+      driver: key => drivers().find(d => d.key === String(key)) || null,
       model: () => M,
       close() { closed = true; clearTimeout(timer); clearInterval(timer); if (ws) { ws.onclose = null; ws.close(); } }
     };

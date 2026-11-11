@@ -704,7 +704,8 @@ function nettoyer_karting($e) {
     }
     $tower = is_array($e['tower'] ?? null) ? $e['tower'] : [];
     $demo = is_array($e['demo'] ?? null) ? $e['demo'] : [];
-    $kart = function ($v) { return is_scalar($v) && preg_match('/^\d{1,4}$/', (string) $v) ? (string) $v : ''; };
+    // pilote : numéro de kart, ou ligne Apex (r12345) quand le circuit n'envoie pas de numéros
+    $kart = function ($v) { return is_scalar($v) && preg_match('/^(\d{1,4}|r\d{1,9})$/', (string) $v) ? (string) $v : ''; };
     $duel = is_array($e['duel'] ?? null) ? $e['duel'] : [];
     return [
         'url'    => $url,

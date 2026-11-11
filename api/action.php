@@ -269,10 +269,10 @@ switch ($action) {
         $suivre = $param('suivre', null);
         $duel = $param('duel', null);
         modifier('karting', function ($K) use ($suivre, $duel) {
-            if ($suivre !== null) $K['focus'] = preg_match('/^\d{1,4}$/', $suivre) ? $suivre : '';
+            if ($suivre !== null) $K['focus'] = preg_match('/^(\d{1,4}|r\d{1,9})$/', $suivre) ? $suivre : '';
             if ($duel !== null) {
                 $d = array_pad(explode(',', $duel), 2, '');
-                $K['duel'] = [preg_match('/^\d{1,4}$/', $d[0]) ? $d[0] : '', preg_match('/^\d{1,4}$/', $d[1]) ? $d[1] : ''];
+                $K['duel'] = [preg_match('/^(\d{1,4}|r\d{1,9})$/', $d[0]) ? $d[0] : '', preg_match('/^(\d{1,4}|r\d{1,9})$/', $d[1]) ? $d[1] : ''];
             }
             return $K;
         });

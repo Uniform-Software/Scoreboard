@@ -960,7 +960,7 @@ function renderKart(state) {
   SB.setText('kRowsTxt', K.tower.rows);
   document.querySelectorAll('[data-kgap]').forEach(b => b.classList.toggle('sel', b.dataset.kgap === K.tower.mode));
   document.querySelectorAll('[data-knames]').forEach(b => b.classList.toggle('sel', b.dataset.knames === K.tower.names));
-  SB.setText('kMapTrack', K.track.title || (K.demo.on ? 'circuit de démonstration' : 'aucun'));
+  SB.setText('kMapTrack', K.track.title || (K.demo.on ? 'circuit de démonstration' : 'aucun : ce circuit ne publie pas de tracé, la mini map reste masquée'));
   renderKartLive();
 }
 
@@ -978,22 +978,22 @@ function renderKartLive() {
   // tableau des pilotes
   $('kRows').replaceChildren(...list.map(d => {
     const tr = document.createElement('tr');
-    tr.className = (d.no === K.focus ? 'focus' : '') + (d.inPit ? ' pit' : '');
+    tr.className = (d.key === K.focus ? 'focus' : '') + (d.inPit ? ' pit' : '');
     const cells = [d.pos, '', d.name + (d.team && d.team !== d.name ? ' · ' + d.team : ''), d.last, d.best, s.race ? (d.pos === 1 ? '' : d.gap) : (d.pos === 1 ? '' : d.gap), d.laps];
     tr.innerHTML = cells.map((c, i) => `<td class="${['num', 'kc', 'nm', 'num t-' + d.lastCls, 'num t-' + d.bestCls, 'num', 'num'][i]}"></td>`).join('') +
-      `<td class="ka"><button class="btn sm${d.no === K.focus ? ' sel' : ''}" data-kfocus="${SB.esc(d.no)}" title="Suivre ce pilote">★</button><button class="btn sm${K.duel[0] === d.no ? ' sel' : ''}" data-kduel="0" data-kno="${SB.esc(d.no)}">A</button><button class="btn sm${K.duel[1] === d.no ? ' sel' : ''}" data-kduel="1" data-kno="${SB.esc(d.no)}">B</button></td>`;
+      `<td class="ka"><button class="btn sm${d.key === K.focus ? ' sel' : ''}" data-kfocus="${SB.esc(d.key)}" title="Suivre ce pilote">★</button><button class="btn sm${K.duel[0] === d.key ? ' sel' : ''}" data-kduel="0" data-kno="${SB.esc(d.key)}">A</button><button class="btn sm${K.duel[1] === d.key ? ' sel' : ''}" data-kduel="1" data-kno="${SB.esc(d.key)}">B</button></td>`;
     const tds = tr.querySelectorAll('td');
     cells.forEach((c, i) => { if (i !== 1) tds[i].textContent = c || ''; });
-    tds[1].innerHTML = `<span class="kno-b" style="background:${SB.esc(d.color || '')};color:${SB.esc(d.colorText || '')}">${SB.esc(d.no)}</span>`;
+    tds[1].innerHTML = `<span class="kno-b" style="background:${SB.esc(d.color || '')};color:${SB.esc(d.colorText || '')}">${SB.esc(d.no || '·')}</span>`;
     if (d.inPit) tds[2].insertAdjacentHTML('beforeend', ' <span class="pitb">PIT</span>');
     return tr;
   }));
   if (!list.length) $('kRows').innerHTML = `<tr><td colspan="8" class="hint">${KF ? 'En attente des karts…' : ''}</td></tr>`;
   // listes de choix (fiche pilote, duel)
-  const key = JSON.stringify([list.map(d => [d.no, d.name]), K.focus, K.duel]);
+  const key = JSON.stringify([list.map(d => [d.key, d.name]), K.focus, K.duel]);
   if (key !== kSelKey) {
     kSelKey = key;
-    const opts = sel => ['<option value="">—</option>', ...list.slice().sort((a, b) => +a.no - +b.no).map(d => `<option value="${SB.esc(d.no)}"${d.no === sel ? ' selected' : ''}>${SB.esc(d.no + ' · ' + d.name)}</option>`)].join('');
+    const opts = sel => ['<option value="">—</option>', ...list.slice().sort((a, b) => a.no && b.no ? +a.no - +b.no : a.name.localeCompare(b.name, 'fr')).map(d => `<option value="${SB.esc(d.key)}"${d.key === sel ? ' selected' : ''}>${SB.esc((d.no ? d.no + ' · ' : '') + d.name)}</option>`)].join('');
     $('kFocus').innerHTML = opts(K.focus);
     $('kDuelA').innerHTML = opts(K.duel[0]);
     $('kDuelB').innerHTML = opts(K.duel[1]);
