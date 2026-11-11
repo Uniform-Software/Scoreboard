@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/overlay.css">
+<style>
+  /* ---------- Position (paramètre ?pos=) ---------- */
+  #rig { position: absolute; left: 64px; right: 64px; top: 52px; display: flex; }
+  .pos-haut-centre #rig, .pos-bas-centre #rig { justify-content: center; }
+  .pos-haut-droite #rig { justify-content: flex-end; }
+  .pos-bas-gauche #rig, .pos-bas-centre #rig { top: auto; bottom: 52px; }
+  #bug { position: relative; transform: scale(var(--s, 1)); transform-origin: top left; }
+  .pos-haut-centre #bug { transform-origin: top center; }
+  .pos-haut-droite #bug { transform-origin: top right; }
+  .bottom #bug { transform-origin: bottom left; }
+  .pos-bas-centre #bug { transform-origin: bottom center; }
+
+  /* ---------- Barre principale ---------- */
+  .mainwrap { position: relative; }
+  .main {
+    position: relative; overflow: hidden;
+    display: flex; align-items: stretch; height: 64px;
+    background: var(--ink);
+    border-radius: 3px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path .15s linear .3s;            /* sortie : se referme sous le volet */
+  }
+  #bug.on .main { clip-path: inset(0 0 0 0); transition: clip-path .5s cubic-bezier(.77,0,.18,1) .18s; }
+
+  /* Volet de couleur qui balaie la barre à l'entrée et à la sortie */
+  .wipe { position: absolute; inset: 0; z-index: 5; background: var(--accent); transform: scaleX(0); transform-origin: left; pointer-events: none; border-radius: 3px; }
+  #bug.intro .wipe { animation: wipe .9s cubic-bezier(.77,0,.18,1); }
+  #bug.outro .wipe { animation: wipe .8s cubic-bezier(.77,0,.18,1) reverse; }
+
+  /* Reflet qui traverse la barre de temps en temps */
+  .main::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: -30%; width: 22%; z-index: 4; pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+    transform: skewX(-24deg);
+    animation: shine 14s ease-in-out 4s infinite;
+  }
+
+  /* Équipes */
+  .team {
+    position: relative; display: flex; align-items: center; gap: 12px;
+    padding: 0 20px 0 26px;
+    background: linear-gradient(180deg, #1a1e27, #0f1218);
+  }
+  .team.away { flex-direction: row-reverse; padding: 0 26px 0 20px; }
+  .team::before {                                     /* bande à la couleur de l'équipe */
+    content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 8px; background: var(--c);
+  }
+  .team.away::before { left: auto; right: 0; }
+  .team::after {                                      /* lueur de la couleur de l'équipe */
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .32;
+    background: linear-gradient(90deg, var(--c), transparent 70%);
+  }
+  .team.away::after { background: linear-gradient(270deg, var(--c), transparent 70%); }
+  .team > * { position: relative; z-index: 1; }
+
+  /* Les deux blocs contiennent les DEUX noms superposés (un invisible) : ils ont toujours la même largeur */
+  .tname { display: grid; font-weight: 800; font-size: 31px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; color: #fff; }
+  .tname span { grid-area: 1 / 1; }
+  .home .tname { text-align: left; }
+  .away .tname { text-align: right; }
+  .tname .ghost { visibility: hidden; }
+
+  .sets {
+    display: none; min-width: 34px; padding: 1px 8px; text-align: center;
+    font-size: 24px; font-weight: 700; color: #fff;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 3px;
+  }
+  .volley .sets { display: block; }
+  .serve { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(0); transition: transform .3s cubic-bezier(.3,1.6,.5,1); }
+  .serve.on { transform: scale(1); }
+
+  /* Scores */
+  .score {
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 68px; padding: 0 12px;
+    background: linear-gradient(180deg, #ffffff, #e6e8ec);
+    color: var(--ink); font-size: 46px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .score + .score { box-shadow: inset 2px 0 0 #c9ccd2; }
+  .digits { position: relative; z-index: 2; display: grid; }
+  .digits span { grid-area: 1 / 1; text-align: center; }
+  .digits .in  { animation: rollIn .5s cubic-bezier(.2,.9,.2,1); }
+  .digits .out { animation: rollOut .5s cubic-bezier(.6,0,.8,.3) forwards; }
+  .digits.dn .in  { animation-name: rollInDn; }
+  .digits.dn .out { animation-name: rollOutDn; }
+  .score .fx { position: absolute; inset: 0; z-index: 1; background: var(--c); transform: scaleX(0); transform-origin: left; }
+  .score.flash .fx { animation: fx .9s cubic-bezier(.3,0,.2,1); }
+  .score.flash .digits { animation: digitsFlash .9s; }
+
+  /* Chrono */
+  .clockbox {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 132px; padding: 0 18px;
+    background: linear-gradient(180deg, #11141b, #06070a);
+    box-shadow: inset 1px 0 0 rgba(255,255,255,.08);
+  }
+  .clock { font-size: 36px; font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; color: #fff; }
+  .clock.word { font-size: 26px; letter-spacing: .12em; text-transform: uppercase; }
+  .clock.low { color: var(--accent); }
+  .clock.zero { color: var(--hot); animation: blink 1s steps(2) infinite; }
+
+  /* ---------- Onglets sous la barre (période, temps additionnel, balle de set) ---------- */
+  .tabs { position: relative; height: 32px; overflow: hidden; display: flex; justify-content: flex-end; gap: 0; }
+  .tab {
+    display: flex; align-items: center; height: 30px; padding: 0 14px;
+    font-size: 19px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    transform: translateY(-110%);
+    transition: transform .3s cubic-bezier(.6,0,.4,1);
+    border-radius: 0 0 3px 3px;
+  }
+  #bug.on .tab.show { transform: none; transition: transform .45s cubic-bezier(.2,.9,.2,1) .75s; }
+  .tab.period { background: var(--accent); color: var(--ink); min-width: 132px; justify-content: center; }
+  .tab.added { background: var(--hot); color: #fff; margin-left: 4px; }
+  .tab.alert { position: absolute; top: 0; background: var(--accent); color: var(--ink); animation: alertPulse 1.2s ease-in-out infinite; }
+  .tab.flip { animation: flip .5s ease; }
+
+  /* ---------- Bandeau d'action (BUT !, ESSAI !, SET…) ---------- */
+  .banner {
+    position: absolute; left: 0; right: 0; top: 64px; z-index: 6;
+    display: flex; align-items: stretch; height: 58px; overflow: hidden;
+    background: var(--c); color: var(--t);
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.45);
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path .35s cubic-bezier(.7,0,.3,1);
+  }
+  .banner.show { clip-path: inset(0 0 0 0); transition: clip-path .45s cubic-bezier(.2,.9,.2,1); }
+  .banner .stripes {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(-55deg, rgba(255,255,255,.09) 0 14px, transparent 14px 28px);
+    animation: stripes 1.2s linear infinite;
+  }
+  .banner::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+    transform: skewX(-24deg);
+  }
+  .banner.show::after { animation: sweep 1.1s ease-out .35s; }
+  .b-label {
+    position: relative; display: flex; align-items: center; padding: 0 22px 0 18px;
+    background: var(--accent); color: var(--ink);
+    font-size: 40px; font-weight: 800; font-style: italic; letter-spacing: .04em; text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+    padding-right: 34px;
+    transform: translateX(-105%);
+    transition: transform .3s ease;
+  }
+  .b-team, .b-score {
+    position: relative; display: flex; align-items: center; padding: 0 18px;
+    font-size: 32px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    opacity: 0; transform: translateX(-24px);
+    transition: opacity .3s, transform .3s;
+  }
+  .b-team { flex: 1; }
+  .b-score { font-variant-numeric: tabular-nums; }
+  .banner.show .b-label { transform: none; transition: transform .5s cubic-bezier(.2,.9,.2,1) .2s; }
+  .banner.show .b-team  { opacity: 1; transform: none; transition: opacity .4s .4s, transform .5s cubic-bezier(.2,.9,.2,1) .4s; }
+  .banner.show .b-score { opacity: 1; transform: none; transition: opacity .4s .55s, transform .5s cubic-bezier(.2,.9,.2,1) .55s; }
+
+  /* En bas de l'écran : onglets et bandeau passent au-dessus de la barre */
+  .bottom #bug { display: flex; flex-direction: column-reverse; }
+  .bottom .tab { transform: translateY(110%); border-radius: 3px 3px 0 0; align-self: flex-end; }
+  .bottom .tabs { align-items: flex-end; }
+  .bottom .banner { top: auto; bottom: 64px; border-radius: 3px 3px 0 0; clip-path: inset(100% 0 0 0); }
+  .bottom .banner.show { clip-path: inset(0 0 0 0); }
+
+  @keyframes wipe {
+    0%   { transform: scaleX(0); transform-origin: left; }
+    44%  { transform: scaleX(1); transform-origin: left; }
+    45%  { transform: scaleX(1); transform-origin: right; }
+    100% { transform: scaleX(0); transform-origin: right; }
+  }
+  @keyframes shine { 0%, 82% { left: -30%; } 100% { left: 130%; } }
+  @keyframes rollIn    { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes rollOut   { from { transform: none; opacity: 1; } to { transform: translateY(-100%); opacity: 0; } }
+  @keyframes rollInDn  { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes rollOutDn { from { transform: none; opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+  @keyframes fx {
+    0%   { transform: scaleX(0); transform-origin: left; opacity: 1; }
+    35%  { transform: scaleX(1); transform-origin: left; opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+  @keyframes digitsFlash { 0%, 50% { color: var(--t); } 100% { color: var(--ink); } }
+  @keyframes stripes { to { background-position: 61px 0; } }
+  @keyframes sweep { from { left: -40%; } to { left: 140%; } }
+  @keyframes flip { 0% { transform: rotateX(90deg); } 100% { transform: none; } }
+  @keyframes alertPulse { 50% { filter: brightness(1.25); box-shadow: 0 0 18px var(--accent); } }
+  @keyframes blink { 50% { opacity: .4; } }
+</style>
+</head>
+<body>
+<div id="rig">
+  <div id="bug">
+    <div class="mainwrap">
+      <div class="main" id="main">
+        <div class="team home" id="home">
+          <div class="tname"><span id="homeName"></span><span class="ghost" id="homeGhost"></span></div>
+          <div class="serve" id="homeServe"></div>
+          <div class="sets" id="homeSets">0</div>
+        </div>
+        <div class="score" id="homeScoreBox"><div class="fx"></div><div class="digits" id="homeScore"></div></div>
+        <div class="score" id="awayScoreBox"><div class="fx"></div><div class="digits" id="awayScore"></div></div>
+        <div class="team away" id="away">
+          <div class="tname"><span id="awayName"></span><span class="ghost" id="awayGhost"></span></div>
+          <div class="serve" id="awayServe"></div>
+          <div class="sets" id="awaySets">0</div>
+        </div>
+        <div class="clockbox"><div class="clock" id="clock">00:00</div></div>
+      </div>
+      <div class="wipe"></div>
+    </div>
+    <div class="tabs" id="tabs">
+      <div class="tab alert" id="alert"></div>
+      <div class="tab period" id="period"></div>
+      <div class="tab added" id="added"></div>
+    </div>
+    <div class="banner" id="banner">
+      <div class="stripes"></div>
+      <div class="b-label" id="bLabel"></div>
+      <div class="b-team" id="bTeam"></div>
+      <div class="b-score" id="bScore"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/commun.js"></script>
+<script>
+const { $, setText } = SB;
+const PREVIEW = SB.params.has('preview');
+
+// Paramètres de l'adresse : ?pos=haut-centre&taille=1.2&accent=ff5500
+const pos = SB.params.get('pos') || 'haut-gauche';
+document.body.classList.add('pos-' + pos);
+if (pos.startsWith('bas')) document.body.classList.add('bottom');
+SB.applyLook();
+
+let S = null;
+let shown = false;
+let lastEvent = null;
+let bannerTimer = null;
+
+// ---------- Entrée / sortie animées ----------
+function setVisible(v) {
+  if (v === shown) return;
+  shown = v;
+  const bug = $('bug');
+  bug.classList.remove('intro', 'outro');
+  void bug.offsetWidth;                       // relance l'animation
+  bug.classList.add(v ? 'intro' : 'outro');
+  bug.classList.toggle('on', v);
+  if (!v) hideBanner();
+}
+
+// ---------- Score qui défile ----------
+function roll(id, value, animate) {
+  const box = $(id);
+  const cur = box.querySelector('span:not(.out)');
+  if (cur && cur.textContent === String(value)) return;
+  const s = document.createElement('span');
+  s.textContent = value;
+  box.querySelectorAll('.out').forEach(x => x.remove());
+  if (!animate || !cur) { box.replaceChildren(s); return; }
+  box.classList.toggle('dn', value < Number(cur.textContent));
+  cur.className = 'out';
+  s.className = 'in';
+  box.append(s);
+  setTimeout(() => cur.remove(), 520);
+  if (value > Number(cur.textContent)) {
+    const sc = box.parentElement;
+    sc.classList.remove('flash'); void sc.offsetWidth; sc.classList.add('flash');
+  }
+}
+
+// ---------- Bandeau ----------
+function showBanner(ev) {
+  const t = S[ev.team];
+  const b = $('banner');
+  b.style.setProperty('--c', t.color);
+  b.style.setProperty('--t', SB.textColor(t.color));
+  setText('bLabel', ev.label + (ev.label.length <= 6 ? ' !' : ''));
+  setText('bTeam', t.name);
+  setText('bScore', SB.sport(S.sport).sets ? `${S.home.sets} – ${S.away.sets}` : `${S.home.score} – ${S.away.score}`);
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(hideBanner, 4800);
+}
+function hideBanner() { $('banner').classList.remove('show'); }
+
+// ---------- Onglets ----------
+function setTab(id, text, show) {
+  const el = $(id);
+  if (show && el.textContent !== text) {
+    const changed = el.textContent !== '' && el.classList.contains('show');
+    el.textContent = text;
+    if (changed) { el.classList.remove('flip'); void el.offsetWidth; el.classList.add('flip'); }
+  }
+  el.classList.toggle('show', !!show);
+}
+
+// ---------- Rendu ----------
+function apply(state) {
+  const first = !S;
+  S = state;
+  const sp = SB.sport(S.sport);
+  const volley = !!sp.sets;
+  $('bug').classList.toggle('volley', volley);
+
+  for (const side of ['home', 'away']) {
+    const t = S[side];
+    for (const id of [side, side + 'ScoreBox']) $(id).style.setProperty('--c', t.color);
+    $(side + 'ScoreBox').style.setProperty('--t', SB.textColor(t.color));
+    setText(side + 'Name', t.name);
+    setText(side + 'Sets', t.sets);
+    roll(side + 'Score', t.score, !first);
+    $(side + 'Serve').classList.toggle('on', volley && S.serve === side);
+  }
+  setText('homeGhost', S.away.name);   // nom invisible de l'autre équipe : égalise les largeurs
+  setText('awayGhost', S.home.name);
+
+  // Nouvelle action de score : bandeau (jamais au premier affichage)
+  if (first) lastEvent = S.event.id;
+  else if (S.event.id !== lastEvent) {
+    lastEvent = S.event.id;
+    if (S.event.team && (PREVIEW || S.visible)) showBanner(S.event);
+  }
+
+  setVisible(PREVIEW || S.visible);
+  tick();
+}
+
+// Chrono et onglets, 10 fois par seconde
+function tick() {
+  if (!S) return;
+  const sp = SB.sport(S.sport);
+  const p = SB.period(S);
+  const clock = $('clock');
+  let text, word = false, low = false, zero = false;
+
+  if (sp.sets) {
+    const v = SB.volley(S);
+    text = v.winner ? 'Fin' : 'Set ' + v.set;
+    word = true;
+    const alert = v.matchPoint ? 'Balle de match' : v.setPoint ? 'Balle de set' : '';
+    if (alert) $('alert').style.left = $(v.setPoint).offsetLeft + 'px';
+    setTab('alert', alert, !!alert && !v.winner);
+    setTab('period', '', false);
+    setTab('added', '', false);
+  } else {
+    if (SB.hasClock(S)) {
+      const ms = SB.clockMs(S);
+      const down = sp.clock === 'down';
+      text = SB.fmt(ms, down);
+      low = down && ms < 60000 && ms > 0;
+      zero = down && ms === 0;
+    } else {
+      text = p ? p.short : '';         // période sans chrono (ex. tirs au but)
+      word = true;
+    }
+    setTab('alert', '', false);
+    setTab('period', p ? p.short : '', !!p && SB.hasClock(S));
+    setTab('added', '+' + S.added, sp.added && S.added > 0 && SB.hasClock(S));
+  }
+
+  setText(clock, text);
+  clock.className = 'clock' + (word ? ' word' : '') + (low ? ' low' : '') + (zero ? ' zero' : '');
+}
+
+(async () => {
+  await SB.loadSports();
+  SB.watch('score', apply);
+  setInterval(tick, 100);
+})();
+</script>
+</body>
+</html>

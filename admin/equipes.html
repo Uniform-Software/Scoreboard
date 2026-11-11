@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Équipes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><i></i>Scoreboard <small>Régie</small></div>
+  <nav class="tabs">
+    <a href="score.html">Score</a>
+    <a href="equipes.html" class="on">Équipes</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="btn tally" id="onair" title="Afficher / masquer les compositions (H)">Hors antenne</button>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap">
+  <div class="col">
+    <section class="panel monitor">
+      <div class="ph">Sortie · Compositions <span class="spacer"></span><span class="badge" id="airBadge">Hors antenne</span></div>
+      <div class="screen">
+        <iframe id="pv" src="../overlay/equipes.html?preview" scrolling="no" title="Aperçu des compositions"></iframe>
+        <div class="off" id="pvOff">Aperçu · hors antenne</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="pb">
+        <div class="two">
+          <div>
+            <div class="lbl">Titre (compétition, phase…)</div>
+            <input type="text" id="title" maxlength="60" placeholder="Feuille de match">
+          </div>
+          <div>
+            <div class="lbl">Scoreboard</div>
+            <div class="row">
+              <button class="btn" id="importBtn">Reprendre noms et couleurs du score</button>
+              <span class="hint" id="importMsg" style="margin:0"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="two" id="teams"></div>
+  </div>
+</main>
+
+<template id="teamTpl">
+  <section class="panel">
+    <div class="ph" data-f="heading"></div>
+    <div class="pb">
+      <div class="lbl">Nom et couleur</div>
+      <div class="namecolor"><input type="text" data-f="name" maxlength="24"><input type="color" data-f="color"></div>
+      <div class="lbl">Logo</div>
+      <input type="text" data-f="logo" maxlength="300" placeholder="iut.png  ou  https://…/logo.png">
+      <p class="hint">Nom d'une image du dossier <code>logos/</code>, ou adresse https complète.</p>
+      <div class="lbl">Entraîneur</div>
+      <input type="text" data-f="coach" maxlength="40">
+      <div class="lbl">Titulaires</div>
+      <textarea data-f="starters" rows="11" placeholder="10 Léo Martin (C)&#10;7 Hugo Petit"></textarea>
+      <p class="hint">Une ligne par joueur : numéro puis nom. Ajoute <code>(C)</code> pour le capitaine.</p>
+      <div class="lbl">Remplaçants</div>
+      <textarea data-f="subs" rows="6"></textarea>
+    </div>
+  </section>
+</template>
+
+<script src="../assets/commun.js"></script>
+<script>
+const { $ } = SB;
+let store = null;
+
+const newTeam = (name, color) => ({ name, color, logo: '', coach: '', starters: [], subs: [] });
+const defaults = () => ({ visible: true, title: '', home: newTeam('DOMICILE', '#e63946'), away: newTeam('EXTÉRIEUR', '#1d6fe0') });
+const act = fn => store.update(fn);
+
+// ---------- Formulaires des deux équipes (construits depuis le modèle) ----------
+const fields = { home: {}, away: {} };
+for (const [side, heading] of [['home', 'Équipe de gauche'], ['away', 'Équipe de droite']]) {
+  const node = $('teamTpl').content.cloneNode(true);
+  node.querySelectorAll('[data-f]').forEach(el => { fields[side][el.dataset.f] = el; });
+  fields[side].heading.textContent = heading;
+  $('teams').append(node);
+
+  const f = fields[side];
+  const on = (key, convert) => f[key].addEventListener('input', e => {
+    const v = convert(e.target.value);
+    act(S => { S[side][key] = v; });
+  });
+  on('name', v => v.toUpperCase());
+  on('color', v => v);
+  on('logo', v => v.trim());
+  on('coach', v => v);
+  on('starters', v => v.split('\n'));
+  on('subs', v => v.split('\n'));
+}
+
+$('title').addEventListener('input', e => { const v = e.target.value; act(S => { S.title = v; }); });
+$('onair').onclick = () => act(S => { S.visible = !S.visible; });
+document.addEventListener('keydown', e => {
+  if (!SB.typing(e) && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'h') $('onair').click();
+});
+
+// ---------- Reprendre les noms et couleurs du scoreboard ----------
+$('importBtn').onclick = async () => {
+  try {
+    const j = await SB.read('score');
+    if (!j.state) throw new Error('aucun score trouvé');
+    const { home, away } = j.state;
+    act(S => {
+      S.home.name = home.name; S.home.color = home.color;
+      S.away.name = away.name; S.away.color = away.color;
+    });
+    $('importMsg').textContent = 'Repris ✓';
+  } catch (e) {
+    $('importMsg').textContent = 'Impossible (' + e.message + ')';
+  }
+  setTimeout(() => { $('importMsg').textContent = ''; }, 3000);
+};
+
+// ---------- Affichage ----------
+const sendPreview = SB.preview($('pv'), 'equipes');
+
+function setVal(el, value) {
+  if (document.activeElement !== el && el.value !== value) el.value = value;
+}
+
+function render(S) {
+  $('onair').className = 'btn tally' + (S.visible ? ' red' : '');
+  $('onair').textContent = S.visible ? 'À l’antenne' : 'Hors antenne';
+  $('airBadge').className = 'badge' + (S.visible ? ' red' : '');
+  $('airBadge').textContent = S.visible ? 'À l’antenne' : 'Hors antenne';
+  $('pvOff').classList.toggle('hidden', S.visible);
+
+  setVal($('title'), S.title);
+  for (const side of ['home', 'away']) {
+    const t = S[side], f = fields[side];
+    f.heading.closest('.panel').style.borderTop = '3px solid ' + t.color;
+    for (const key of ['name', 'color', 'logo', 'coach']) setVal(f[key], t[key]);
+    setVal(f.starters, t.starters.join('\n'));
+    setVal(f.subs, t.subs.join('\n'));
+  }
+  sendPreview(S);
+}
+
+store = SB.store({ f: 'equipes', defaults, onChange: render, onStatus: SB.syncStatus });
+</script>
+</body>
+</html>

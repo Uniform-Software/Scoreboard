@@ -1,0 +1,12 @@
+# Données du match (créées par le serveur)
+data/*.json
+data/*.lock
+data/*.tmp
+
+# Mots de passe
+.htpasswd
+
+# Éditeurs / système
+.idea/
+.vscode/
+.DS_Store

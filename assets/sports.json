@@ -1,0 +1,106 @@
+{
+  "foot": {
+    "label": "Football",
+    "clock": "up",
+    "added": true,
+    "periods": [
+      { "name": "1re mi-temps", "short": "1re MT", "len": 45 },
+      { "name": "2e mi-temps", "short": "2e MT", "len": 45 },
+      { "name": "Prolongation 1", "short": "Prol. 1", "len": 15 },
+      { "name": "Prolongation 2", "short": "Prol. 2", "len": 15 },
+      { "name": "Tirs au but", "short": "TAB", "len": 0 }
+    ],
+    "points": [
+      { "value": 1, "label": "But", "banner": true }
+    ],
+    "time": "2 × 45 minutes (mi-temps de 15 minutes). En cas d'égalité en phase finale : prolongations 2 × 15 minutes, puis tirs au but.",
+    "rules": [
+      "But = 1 point (le ballon doit franchir entièrement la ligne).",
+      "Le temps additionnel est annoncé par le 4e arbitre à la fin de chaque mi-temps."
+    ]
+  },
+  "rugby": {
+    "label": "Rugby",
+    "clock": "up",
+    "added": false,
+    "periods": [
+      { "name": "1re mi-temps", "short": "1re MT", "len": 40 },
+      { "name": "2e mi-temps", "short": "2e MT", "len": 40 },
+      { "name": "Prolongation 1", "short": "Prol. 1", "len": 10 },
+      { "name": "Prolongation 2", "short": "Prol. 2", "len": 10 }
+    ],
+    "points": [
+      { "value": 5, "label": "Essai", "banner": true },
+      { "value": 2, "label": "Transformation", "banner": true },
+      { "value": 3, "label": "Pénalité", "banner": true },
+      { "value": 3, "label": "Drop", "banner": true }
+    ],
+    "time": "Rugby à XV : 2 × 40 minutes (mi-temps de 10 minutes maximum). Le jeu continue après la sirène jusqu'à ce que le ballon soit mort.",
+    "rules": [
+      "Essai = 5 points.",
+      "Transformation = 2 points (tentée après un essai).",
+      "Pénalité = 3 points.",
+      "Drop (coup de pied tombé) = 3 points."
+    ]
+  },
+  "hand": {
+    "label": "Handball",
+    "clock": "up",
+    "added": false,
+    "periods": [
+      { "name": "1re mi-temps", "short": "1re MT", "len": 30 },
+      { "name": "2e mi-temps", "short": "2e MT", "len": 30 },
+      { "name": "Prolongation 1", "short": "Prol. 1", "len": 5 },
+      { "name": "Prolongation 2", "short": "Prol. 2", "len": 5 }
+    ],
+    "points": [
+      { "value": 1, "label": "But", "banner": false }
+    ],
+    "time": "2 × 30 minutes (mi-temps de 10 minutes). En cas d'égalité en phase finale : prolongations 2 × 5 minutes.",
+    "rules": [
+      "But = 1 point (y compris sur un jet de 7 mètres).",
+      "Suspension d'un joueur = 2 minutes."
+    ]
+  },
+  "basket": {
+    "label": "Basket",
+    "clock": "down",
+    "added": false,
+    "periods": [
+      { "name": "1er quart-temps", "short": "Q1", "len": 10 },
+      { "name": "2e quart-temps", "short": "Q2", "len": 10 },
+      { "name": "3e quart-temps", "short": "Q3", "len": 10 },
+      { "name": "4e quart-temps", "short": "Q4", "len": 10 },
+      { "name": "Prolongation", "short": "Prol.", "len": 5 }
+    ],
+    "points": [
+      { "value": 1, "label": "Lancer franc", "banner": false },
+      { "value": 2, "label": "Panier", "banner": false },
+      { "value": 3, "label": "3 points", "banner": true }
+    ],
+    "time": "Règlement FIBA : 4 quarts-temps de 10 minutes (chrono décroissant, arrêté à chaque arrêt de jeu). Pause de 2 minutes entre les quarts, 15 minutes à la mi-temps. Prolongation(s) : 5 minutes. (En NBA : 4 × 12 minutes.)",
+    "rules": [
+      "Lancer franc = 1 point.",
+      "Tir à l'intérieur de la ligne à 3 points = 2 points.",
+      "Tir derrière la ligne à 3 points = 3 points.",
+      "5 fautes pour un joueur = exclusion du match."
+    ]
+  },
+  "volley": {
+    "label": "Volley-ball",
+    "clock": false,
+    "added": false,
+    "sets": { "win": 3, "points": 25, "last": 15 },
+    "periods": [],
+    "points": [
+      { "value": 1, "label": "Point", "banner": false }
+    ],
+    "time": "Pas de chrono : le match se joue en 3 sets gagnants (5 sets maximum).",
+    "rules": [
+      "Chaque échange gagné = 1 point (« rally point ») et donne le service.",
+      "Un set se joue en 25 points, avec 2 points d'écart minimum.",
+      "Le 5e set (décisif) se joue en 15 points, avec 2 points d'écart minimum.",
+      "Le premier à gagner 3 sets remporte le match."
+    ]
+  }
+}

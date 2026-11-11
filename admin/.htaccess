@@ -1,0 +1,13 @@
+# Protège toute la régie (pages de contrôle + ecrire.php) par un mot de passe.
+#
+# 1. Crée le fichier de mots de passe, de préférence HORS du dossier public du site :
+#      htpasswd -c /chemin/absolu/.htpasswd regie
+# 2. Remplace le chemin ci-dessous par le chemin ABSOLU de ce fichier.
+#
+# Tant que le chemin n'est pas bon, le serveur renvoie une erreur 500 :
+# la régie reste fermée (jamais ouverte à tout le monde par erreur).
+
+AuthType Basic
+AuthName "Regie Scoreboard"
+AuthUserFile /CHEMIN/ABSOLU/VERS/.htpasswd
+Require valid-user

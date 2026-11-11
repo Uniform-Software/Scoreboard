@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Équipes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/overlay.css">
+<style>
+  /* ---------- Titre ---------- */
+  .head {
+    position: absolute; top: 64px; left: 0; right: 0;
+    display: flex; justify-content: center;
+  }
+  .headin {
+    display: flex; align-items: stretch; height: 64px;
+    background: var(--ink); box-shadow: 0 14px 40px rgba(0,0,0,.5);
+    border-radius: 3px; overflow: hidden;
+    clip-path: inset(0 50% 0 50%);
+    transition: clip-path .35s cubic-bezier(.7,0,.3,1) .25s;
+  }
+  .on .headin { clip-path: inset(0 0 0 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1) .05s; }
+  .tag {
+    display: flex; align-items: center; padding: 0 28px 0 24px;
+    background: var(--accent); color: var(--ink);
+    font-size: 26px; font-weight: 800; font-style: italic; letter-spacing: .12em; text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  }
+  .title {
+    display: flex; align-items: center; padding: 0 34px 0 22px;
+    font-size: 34px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+  }
+
+  /* ---------- Panneaux ---------- */
+  .panels { position: absolute; top: 172px; bottom: 76px; left: 110px; right: 110px; display: flex; gap: 130px; }
+  .panel {
+    position: relative; flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column;
+    background: linear-gradient(180deg, rgba(20,23,31,.95), rgba(9,11,15,.95));
+    border-radius: 3px; overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07);
+    transition: clip-path .4s cubic-bezier(.7,0,.3,1) .1s;
+  }
+  .panel.home { clip-path: inset(0 0 0 100%); }
+  .panel.away { clip-path: inset(0 100% 0 0); }
+  .on .panel { clip-path: inset(0 0 0 0); transition: clip-path .7s cubic-bezier(.77,0,.18,1) .3s; }
+
+  .phead {
+    position: relative; display: flex; align-items: center; gap: 24px;
+    height: 128px; padding: 0 36px; flex: none;
+    background: var(--c); color: var(--t);
+  }
+  .phead::before {                       /* léger relief sur la couleur de l'équipe */
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.22));
+  }
+  .phead::after {                        /* filet d'accent sous l'en-tête */
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left; transition: transform .3s;
+  }
+  .away .phead::after { transform-origin: right; }
+  .on .phead::after { transform: scaleX(1); transition: transform .6s cubic-bezier(.2,.9,.2,1) .9s; }
+  .away .phead { flex-direction: row-reverse; text-align: right; }
+  .phead > * { position: relative; }
+  .plogo { display: none; height: 88px; max-width: 150px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
+  .plogo.has { display: block; }
+  .pname {
+    flex: 1; min-width: 0;
+    font-size: 58px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden;
+    text-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  .phead .pname, .phead .plogo { opacity: 0; transform: translateY(24px); transition: opacity .2s, transform .2s; }
+  .on .phead .pname, .on .phead .plogo { opacity: 1; transform: none; transition: opacity .5s .75s, transform .6s cubic-bezier(.2,.9,.2,1) .75s; }
+
+  .pbody { flex: 1; min-height: 0; overflow: hidden; padding: 26px 36px 10px; font-size: var(--fs, 34px); }
+  .ptitle {
+    display: flex; align-items: center; gap: .5em; margin: .7em 0 .35em;
+    font-size: .56em; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent);
+  }
+  .ptitle::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.12); }
+  .ptitle:first-child { margin-top: 0; }
+  .pbody ul { list-style: none; margin: 0; padding: 0; }
+  .pbody li {
+    display: flex; align-items: center; gap: .55em;
+    padding: .13em 0; line-height: 1.22;
+    font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    opacity: 0; transform: translateX(-26px);
+    transition: opacity .2s, transform .2s;
+  }
+  .away .pbody li { transform: translateX(26px); }
+  .on .pbody li {
+    opacity: 1; transform: none;
+    transition: opacity .45s, transform .55s cubic-bezier(.2,.9,.2,1);
+    transition-delay: calc(1s + var(--i, 0) * 45ms);
+  }
+  .pbody li .n {
+    flex: none; width: 1.75em; text-align: center;
+    font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
+    background: #fff; border-radius: 2px; box-shadow: inset 0 -3px 0 var(--c);
+  }
+  .pbody li.nonum .n { visibility: hidden; }
+  .pbody li .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pbody li .cap {
+    display: none; flex: none; font-size: .6em; font-weight: 800; padding: 0 .4em;
+    color: var(--ink); background: var(--accent); border-radius: 2px;
+  }
+  .pbody li.captain .cap { display: inline-block; }
+  .subs li { color: rgba(255,255,255,.72); font-weight: 500; }
+
+  .coach {
+    flex: none; display: flex; align-items: center; gap: 12px;
+    padding: 16px 36px; border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 24px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    opacity: 0; transition: opacity .2s;
+  }
+  .coach b { color: var(--accent); font-weight: 700; letter-spacing: .24em; font-size: .8em; }
+  .on .coach { opacity: 1; transition: opacity .6s 1.4s; }
+
+  /* ---------- VS ---------- */
+  .vs {
+    position: absolute; top: 172px; left: 50%; width: 96px; height: 128px; margin-left: -48px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 54px; font-weight: 800; font-style: italic; color: var(--ink);
+    background: var(--accent);
+    clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%);
+    transform: scale(0); transition: transform .25s;
+  }
+  .on .vs { transform: none; transition: transform .55s cubic-bezier(.3,1.5,.5,1) .85s; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="head">
+    <div class="headin">
+      <div class="tag">Compositions</div>
+      <div class="title" id="title"></div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <section class="panel home" id="home">
+      <div class="phead" id="homeHead"><img class="plogo" id="homeLogo" alt=""><div class="pname" id="homeName"></div></div>
+      <div class="pbody" id="homeBody">
+        <div class="ptitle">Titulaires</div>
+        <ul id="homeStarters"></ul>
+        <div class="ptitle" id="homeSubsTitle">Remplaçants</div>
+        <ul class="subs" id="homeSubs"></ul>
+      </div>
+      <div class="coach" id="homeCoach"><b>Entraîneur</b><span></span></div>
+    </section>
+    <section class="panel away" id="away">
+      <div class="phead" id="awayHead"><img class="plogo" id="awayLogo" alt=""><div class="pname" id="awayName"></div></div>
+      <div class="pbody" id="awayBody">
+        <div class="ptitle">Titulaires</div>
+        <ul id="awayStarters"></ul>
+        <div class="ptitle" id="awaySubsTitle">Remplaçants</div>
+        <ul class="subs" id="awaySubs"></ul>
+      </div>
+      <div class="coach" id="awayCoach"><b>Entraîneur</b><span></span></div>
+    </section>
+  </div>
+  <div class="vs">VS</div>
+</div>
+
+<script src="../assets/commun.js"></script>
+<script>
+const { $, setText } = SB;
+const PREVIEW = SB.params.has('preview');
+SB.applyLook();
+
+let S = null;
+let lastJson = '';
+
+// Si une image de logo est introuvable, on la cache simplement
+document.querySelectorAll('img').forEach(img => { img.onerror = () => img.classList.remove('has'); });
+
+function setLogo(img, v) {
+  const src = !v ? '' : /^https:\/\//.test(v) ? v : '../logos/' + v;
+  if (src) {
+    if (img.getAttribute('src') !== src) img.src = src;
+    img.classList.add('has');
+  } else {
+    img.removeAttribute('src');
+    img.classList.remove('has');
+  }
+}
+
+// Une ligne « 10 Léo Martin (C) » devient : numéro 10, nom LÉO MARTIN, badge capitaine.
+// Les lignes existantes sont réutilisées : modifier un nom ne relance pas l'animation des autres.
+function fillList(ul, lines, first) {
+  while (ul.children.length > lines.length) ul.lastElementChild.remove();
+  lines.forEach((line, i) => {
+    let li = ul.children[i];
+    if (!li) {
+      li = document.createElement('li');
+      li.innerHTML = '<span class="n"></span><span class="nm"></span><span class="cap">C</span>';
+      ul.append(li);
+    }
+    li.style.setProperty('--i', first + i);
+    const m = line.match(/^(\d{1,3})\s+(.+)$/);
+    let name = m ? m[2] : line;
+    const captain = /\s*\((c|cap)\)$/i.test(name);
+    name = name.replace(/\s*\((c|cap)\)$/i, '');
+    setText(li.children[0], m ? m[1] : '');
+    setText(li.children[1], name);
+    li.classList.toggle('nonum', !m);
+    li.classList.toggle('captain', captain);
+  });
+}
+
+// Réduit la taille des deux noms jusqu'à ce qu'ils tiennent, en gardant la même taille pour les deux
+function fitNames() {
+  const a = $('homeName'), b = $('awayName');
+  let size = 58;
+  a.style.fontSize = b.style.fontSize = size + 'px';
+  while (size > 26 && (a.scrollWidth > a.clientWidth || b.scrollWidth > b.clientWidth)) {
+    size -= 2;
+    a.style.fontSize = b.style.fontSize = size + 'px';
+  }
+}
+
+// Réduit la taille des listes jusqu'à ce que tout tienne (même taille des deux côtés)
+function fitBodies() {
+  const bodies = [$('homeBody'), $('awayBody')];
+  let size = 46;
+  const set = () => bodies.forEach(b => b.style.setProperty('--fs', size + 'px'));
+  set();
+  while (size > 14 && bodies.some(b => b.scrollHeight > b.clientHeight + 1)) {
+    size -= 1;
+    set();
+  }
+}
+
+function apply(state) {
+  S = state;
+  const json = JSON.stringify(S);
+  if (json !== lastJson) {             // on ne reconstruit l'écran que si les données ont changé
+    lastJson = json;
+    setText('title', S.title || 'Feuille de match');
+    for (const side of ['home', 'away']) {
+      const t = S[side];
+      $(side).style.setProperty('--c', t.color);
+      $(side + 'Head').style.setProperty('--t', SB.textColor(t.color));
+      setText(side + 'Name', t.name);
+      setLogo($(side + 'Logo'), t.logo);
+      fillList($(side + 'Starters'), t.starters, 0);
+      fillList($(side + 'Subs'), t.subs, t.starters.length + 1);
+      $(side + 'SubsTitle').classList.toggle('hidden', !t.subs.length);
+      setText($(side + 'Coach').lastElementChild, t.coach);
+      $(side + 'Coach').classList.toggle('hidden', !t.coach);
+    }
+    fitNames();
+    fitBodies();
+  }
+  // Entrée / sortie animées
+  requestAnimationFrame(() => $('stage').classList.toggle('on', PREVIEW || S.visible));
+}
+
+(async () => {
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { if (S) { lastJson = ''; apply(S); } });
+  }
+  SB.watch('equipes', apply);
+})();
+</script>
+</body>
+</html>

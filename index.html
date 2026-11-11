@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+  .wrap { max-width: 720px; }
+  .links { display: grid; gap: 10px; }
+  .links .btn { justify-content: space-between; min-height: 60px; padding: 0 18px; }
+  .links .btn small { font: 500 13px var(--sans); letter-spacing: 0; text-transform: none; color: var(--mut); }
+  .links .btn.amber small { color: #4a3400; }
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><i></i>Scoreboard</div></header>
+<main class="wrap">
+  <section class="panel">
+    <div class="ph">Régie (mot de passe)</div>
+    <div class="pb links">
+      <a class="btn amber" href="admin/score.html">Score et chrono <small>Contrôle du match</small></a>
+      <a class="btn" href="admin/equipes.html">Compositions <small>Contrôle des équipes</small></a>
+    </div>
+  </section>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph">Overlays OBS (1920 × 1080)</div>
+    <div class="pb links">
+      <a class="btn" href="overlay/score.html" target="_blank" rel="noopener">Scoreboard <small>overlay/score.html</small></a>
+      <a class="btn" href="overlay/equipes.html" target="_blank" rel="noopener">Compositions <small>overlay/equipes.html</small></a>
+    </div>
+  </section>
+</main>
+</body>
+</html>

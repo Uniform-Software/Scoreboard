@@ -1,0 +1,17 @@
+/* overlay.css : base commune des overlays (sources navigateur OBS en 1920 × 1080, fond transparent). */
+
+:root {
+  --accent: #ffc20e;   /* couleur d'accent (modifiable avec ?accent=rrggbb) */
+  --ink: #0b0d12;      /* fond sombre / texte sur fond clair */
+  --hot: #e5262f;      /* alertes : temps additionnel, fin du chrono */
+  --font: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', Arial, sans-serif;
+}
+
+html, body {
+  margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+  background: transparent; color: #fff;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+.hidden { display: none !important; }
