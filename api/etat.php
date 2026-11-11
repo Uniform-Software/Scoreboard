@@ -8,6 +8,10 @@
 // "rev" augmente de 1 à chaque écriture : il permet de détecter qu'une autre
 // page de contrôle a modifié les données entre-temps (voir ecrire_etat).
 
+// Les avertissements PHP ne doivent jamais s'afficher dans les réponses : ils casseraient le JSON
+// lu par la régie (PHP 8.5 en signale beaucoup). Ils restent dans le journal du serveur.
+ini_set('display_errors', '0');
+
 const FICHIERS = ['score', 'equipes', 'infos', 'antenne', 'clubs', 'habillage', 'graphiques', 'karting'];
 
 function dossier_data() {

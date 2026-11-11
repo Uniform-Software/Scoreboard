@@ -14,23 +14,39 @@ if (!preg_match('#^(?:https?://)?(www\.)?apex-timing\.com/live-timing/([A-Za-z0-
 }
 $base = 'https://www.apex-timing.com/live-timing/' . $m[2] . '/';
 
-function telecharger($u) {
+// Télécharge une adresse d'apex-timing.com : curl si disponible, sinon les flux PHP.
+// $raison reçoit la cause d'un échec (pour un message d'erreur utile).
+function telecharger($u, &$raison = '') {
+    $raison = '';
     if (function_exists('curl_init')) {
         $c = curl_init($u);
-        curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_TIMEOUT => 10,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Scoreboard UNI)', CURLOPT_MAXFILESIZE => 3000000]);
+        curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_TIMEOUT => 10, CURLOPT_CONNECTTIMEOUT => 6,
+            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4, CURLOPT_USERAGENT => 'Mozilla/5.0 (Scoreboard UNI)', CURLOPT_MAXFILESIZE => 3000000]);
         $r = curl_exec($c);
-        $code = curl_getinfo($c, CURLINFO_HTTP_CODE);
-        return ($r !== false && $code === 200) ? $r : null;
+        $code = (int) curl_getinfo($c, CURLINFO_HTTP_CODE);
+        if ($r !== false && $code === 200) return $r;
+        $raison = $r === false ? 'connexion impossible (' . curl_error($c) . ')' : "réponse HTTP $code";
     }
-    $ctx = stream_context_create(['http' => ['timeout' => 10, 'follow_location' => 0, 'header' => "User-Agent: Mozilla/5.0 (Scoreboard UNI)\r\n"]]);
-    $r = @file_get_contents($u, false, $ctx, 0, 3000000);
-    return $r === false ? null : $r;
+    if (ini_get('allow_url_fopen') && in_array('https', stream_get_wrappers(), true)) {
+        $ctx = stream_context_create(['http' => ['timeout' => 10, 'follow_location' => 0, 'ignore_errors' => true, 'header' => "User-Agent: Mozilla/5.0 (Scoreboard UNI)\r\n"]]);
+        $r = @file_get_contents($u, false, $ctx, 0, 3000000);
+        $entetes = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?: []) : ($http_response_header ?? []);
+        $code = isset($entetes[0]) && preg_match('/\s(\d{3})\s/', $entetes[0], $mm) ? (int) $mm[1] : 0;
+        if ($r !== false && $code === 200) return $r;
+        $raison = $raison ?: ($r === false ? 'connexion impossible' : "réponse HTTP $code");
+    } elseif (!$raison) {
+        $raison = 'PHP ne peut pas ouvrir d\'adresse https (extensions curl et openssl absentes, ou allow_url_fopen désactivé)';
+    }
+    return null;
 }
 
-$config = telecharger($base . 'javascript/config.js');
-if ($config === null || !preg_match('/configPort\s*=\s*(\d+)/', $config, $p)) {
-    echec(404, 'Circuit introuvable sur Apex Timing (vérifie le lien)');
+$config = telecharger($base . 'javascript/config.js', $raison);
+if ($config === null) {
+    if (preg_match('/HTTP 404/', $raison)) echec(404, "Circuit « {$m[2]} » introuvable sur Apex Timing : vérifie le lien (il doit ouvrir le live timing dans ton navigateur)");
+    echec(502, "Le serveur de la régie n'arrive pas à joindre apex-timing.com : $raison. Vérifie sa connexion internet (pare-feu, proxy, hébergement qui bloque les sorties).");
+}
+if (!preg_match('/configPort\s*=\s*(\d+)/', $config, $p)) {
+    echec(404, "Ce lien ne ressemble pas à un live timing Apex (pas de port dans sa configuration) : vérifie le lien");
 }
 $host = preg_match("/configHost\s*=\s*['\"]([a-z0-9.\-]+\.apex-timing\.com)['\"]/", $config, $h) ? $h[1] : 'live-data.apex-timing.com';
 $titre = preg_match("/logo_title\s*=\s*'([^']+)'/", $config, $t) || preg_match("/\btitle\s*=\s*'([^']+)'/", $config, $t)
