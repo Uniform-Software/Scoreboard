@@ -1,8 +1,11 @@
 {
   "foot": {
     "label": "Football",
+    "layout": "barre",
     "clock": "up",
     "added": true,
+    "cards": true,
+    "scorers": true,
     "periods": [
       { "name": "1re mi-temps", "short": "1re MT", "len": 45 },
       { "name": "2e mi-temps", "short": "2e MT", "len": 45 },
@@ -17,12 +20,183 @@
     "rules": [
       "But = 1 point (le ballon doit franchir entièrement la ligne).",
       "Le temps additionnel est annoncé par le 4e arbitre à la fin de chaque mi-temps."
+    ],
+    "onField": 11,
+    "pitch": "foot",
+    "positions": [
+      { "id": "GB", "label": "Gardien" },
+      { "id": "DD", "label": "Défenseur droit" },
+      { "id": "DC", "label": "Défenseur central" },
+      { "id": "DG", "label": "Défenseur gauche" },
+      { "id": "MDC", "label": "Milieu défensif" },
+      { "id": "MC", "label": "Milieu central" },
+      { "id": "MOC", "label": "Milieu offensif" },
+      { "id": "MD", "label": "Milieu droit" },
+      { "id": "MG", "label": "Milieu gauche" },
+      { "id": "AD", "label": "Ailier droit" },
+      { "id": "AG", "label": "Ailier gauche" },
+      { "id": "BU", "label": "Avant-centre" }
+    ],
+    "numbers": {
+      "GB": [1, 16, 30, 40],
+      "DD": [2],
+      "DG": [3],
+      "DC": [4, 5, 6],
+      "MDC": [6, 4],
+      "MC": [8, 6, 14],
+      "MOC": [10],
+      "MD": [7],
+      "MG": [11],
+      "AD": [7],
+      "AG": [11],
+      "BU": [9]
+    },
+    "formations": [
+      {
+        "id": "442",
+        "label": "4-4-2",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 86, "y": 70, "role": "DD" },
+          { "id": "dc1", "x": 62, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 38, "y": 75, "role": "DC" },
+          { "id": "dg", "x": 14, "y": 70, "role": "DG" },
+          { "id": "md", "x": 86, "y": 44, "role": "MD" },
+          { "id": "mc1", "x": 62, "y": 48, "role": "MC" },
+          { "id": "mc2", "x": 38, "y": 48, "role": "MC" },
+          { "id": "mg", "x": 14, "y": 44, "role": "MG" },
+          { "id": "bu1", "x": 62, "y": 18, "role": "BU" },
+          { "id": "bu2", "x": 38, "y": 18, "role": "BU" }
+        ]
+      },
+      {
+        "id": "433",
+        "label": "4-3-3",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 86, "y": 70, "role": "DD" },
+          { "id": "dc1", "x": 62, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 38, "y": 75, "role": "DC" },
+          { "id": "dg", "x": 14, "y": 70, "role": "DG" },
+          { "id": "mc1", "x": 72, "y": 50, "role": "MC" },
+          { "id": "mdc", "x": 50, "y": 56, "role": "MDC" },
+          { "id": "mc2", "x": 28, "y": 50, "role": "MC" },
+          { "id": "ad", "x": 84, "y": 22, "role": "AD" },
+          { "id": "bu", "x": 50, "y": 16, "role": "BU" },
+          { "id": "ag", "x": 16, "y": 22, "role": "AG" }
+        ]
+      },
+      {
+        "id": "4231",
+        "label": "4-2-3-1",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 86, "y": 70, "role": "DD" },
+          { "id": "dc1", "x": 62, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 38, "y": 75, "role": "DC" },
+          { "id": "dg", "x": 14, "y": 70, "role": "DG" },
+          { "id": "mdc1", "x": 62, "y": 57, "role": "MDC" },
+          { "id": "mdc2", "x": 38, "y": 57, "role": "MDC" },
+          { "id": "ad", "x": 84, "y": 34, "role": "AD" },
+          { "id": "moc", "x": 50, "y": 34, "role": "MOC" },
+          { "id": "ag", "x": 16, "y": 34, "role": "AG" },
+          { "id": "bu", "x": 50, "y": 13, "role": "BU" }
+        ]
+      },
+      {
+        "id": "4312",
+        "label": "4-3-1-2",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 86, "y": 70, "role": "DD" },
+          { "id": "dc1", "x": 62, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 38, "y": 75, "role": "DC" },
+          { "id": "dg", "x": 14, "y": 70, "role": "DG" },
+          { "id": "mc1", "x": 74, "y": 52, "role": "MC" },
+          { "id": "mdc", "x": 50, "y": 57, "role": "MDC" },
+          { "id": "mc2", "x": 26, "y": 52, "role": "MC" },
+          { "id": "moc", "x": 50, "y": 36, "role": "MOC" },
+          { "id": "bu1", "x": 62, "y": 15, "role": "BU" },
+          { "id": "bu2", "x": 38, "y": 15, "role": "BU" }
+        ]
+      },
+      {
+        "id": "4141",
+        "label": "4-1-4-1",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 86, "y": 70, "role": "DD" },
+          { "id": "dc1", "x": 62, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 38, "y": 75, "role": "DC" },
+          { "id": "dg", "x": 14, "y": 70, "role": "DG" },
+          { "id": "mdc", "x": 50, "y": 58, "role": "MDC" },
+          { "id": "md", "x": 86, "y": 40, "role": "MD" },
+          { "id": "mc1", "x": 62, "y": 42, "role": "MC" },
+          { "id": "mc2", "x": 38, "y": 42, "role": "MC" },
+          { "id": "mg", "x": 14, "y": 40, "role": "MG" },
+          { "id": "bu", "x": 50, "y": 14, "role": "BU" }
+        ]
+      },
+      {
+        "id": "352",
+        "label": "3-5-2",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dc1", "x": 74, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 50, "y": 78, "role": "DC" },
+          { "id": "dc3", "x": 26, "y": 75, "role": "DC" },
+          { "id": "md", "x": 88, "y": 46, "role": "MD" },
+          { "id": "mc1", "x": 66, "y": 54, "role": "MC" },
+          { "id": "moc", "x": 50, "y": 38, "role": "MOC" },
+          { "id": "mc2", "x": 34, "y": 54, "role": "MC" },
+          { "id": "mg", "x": 12, "y": 46, "role": "MG" },
+          { "id": "bu1", "x": 62, "y": 15, "role": "BU" },
+          { "id": "bu2", "x": 38, "y": 15, "role": "BU" }
+        ]
+      },
+      {
+        "id": "343",
+        "label": "3-4-3",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dc1", "x": 74, "y": 75, "role": "DC" },
+          { "id": "dc2", "x": 50, "y": 78, "role": "DC" },
+          { "id": "dc3", "x": 26, "y": 75, "role": "DC" },
+          { "id": "md", "x": 86, "y": 48, "role": "MD" },
+          { "id": "mc1", "x": 62, "y": 52, "role": "MC" },
+          { "id": "mc2", "x": 38, "y": 52, "role": "MC" },
+          { "id": "mg", "x": 14, "y": 48, "role": "MG" },
+          { "id": "ad", "x": 80, "y": 22, "role": "AD" },
+          { "id": "bu", "x": 50, "y": 15, "role": "BU" },
+          { "id": "ag", "x": 20, "y": 22, "role": "AG" }
+        ]
+      },
+      {
+        "id": "532",
+        "label": "5-3-2",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 92, "role": "GB" },
+          { "id": "dd", "x": 88, "y": 62, "role": "DD" },
+          { "id": "dc1", "x": 70, "y": 76, "role": "DC" },
+          { "id": "dc2", "x": 50, "y": 79, "role": "DC" },
+          { "id": "dc3", "x": 30, "y": 76, "role": "DC" },
+          { "id": "dg", "x": 12, "y": 62, "role": "DG" },
+          { "id": "mc1", "x": 72, "y": 45, "role": "MC" },
+          { "id": "mdc", "x": 50, "y": 50, "role": "MDC" },
+          { "id": "mc2", "x": 28, "y": 45, "role": "MC" },
+          { "id": "bu1", "x": 62, "y": 17, "role": "BU" },
+          { "id": "bu2", "x": 38, "y": 17, "role": "BU" }
+        ]
+      }
     ]
   },
   "rugby": {
     "label": "Rugby",
+    "layout": "barre-gauche",
     "clock": "up",
     "added": false,
+    "scorers": true,
+    "sinbin": { "label": "Carton jaune", "min": 10, "color": "#ffd400" },
     "periods": [
       { "name": "1re mi-temps", "short": "1re MT", "len": 40 },
       { "name": "2e mi-temps", "short": "2e MT", "len": 40 },
@@ -41,12 +215,142 @@
       "Transformation = 2 points (tentée après un essai).",
       "Pénalité = 3 points.",
       "Drop (coup de pied tombé) = 3 points."
+    ],
+    "onField": 15,
+    "pitch": "rugby",
+    "positions": [
+      { "id": "PG", "label": "Pilier gauche" },
+      { "id": "TA", "label": "Talonneur" },
+      { "id": "PD", "label": "Pilier droit" },
+      { "id": "L2", "label": "2e ligne" },
+      { "id": "FL", "label": "3e ligne aile" },
+      { "id": "N8", "label": "3e ligne centre" },
+      { "id": "DM", "label": "Demi de mêlée" },
+      { "id": "DO", "label": "Demi d'ouverture" },
+      { "id": "AI", "label": "Ailier" },
+      { "id": "CE", "label": "Centre" },
+      { "id": "AR", "label": "Arrière" }
+    ],
+    "formations": [
+      {
+        "id": "xv",
+        "label": "XV",
+        "slots": [
+          {
+            "id": "1",
+            "x": 34,
+            "y": 16,
+            "role": "PG",
+            "n": [1]
+          },
+          {
+            "id": "2",
+            "x": 50,
+            "y": 15,
+            "role": "TA",
+            "n": [2]
+          },
+          {
+            "id": "3",
+            "x": 66,
+            "y": 16,
+            "role": "PD",
+            "n": [3]
+          },
+          {
+            "id": "4",
+            "x": 42,
+            "y": 28,
+            "role": "L2",
+            "n": [4]
+          },
+          {
+            "id": "5",
+            "x": 58,
+            "y": 28,
+            "role": "L2",
+            "n": [5]
+          },
+          {
+            "id": "6",
+            "x": 26,
+            "y": 37,
+            "role": "FL",
+            "n": [6]
+          },
+          {
+            "id": "7",
+            "x": 74,
+            "y": 37,
+            "role": "FL",
+            "n": [7]
+          },
+          {
+            "id": "8",
+            "x": 50,
+            "y": 41,
+            "role": "N8",
+            "n": [8]
+          },
+          {
+            "id": "9",
+            "x": 42,
+            "y": 54,
+            "role": "DM",
+            "n": [9]
+          },
+          {
+            "id": "10",
+            "x": 60,
+            "y": 61,
+            "role": "DO",
+            "n": [10]
+          },
+          {
+            "id": "11",
+            "x": 10,
+            "y": 73,
+            "role": "AI",
+            "n": [11]
+          },
+          {
+            "id": "12",
+            "x": 36,
+            "y": 75,
+            "role": "CE",
+            "n": [12]
+          },
+          {
+            "id": "13",
+            "x": 62,
+            "y": 77,
+            "role": "CE",
+            "n": [13]
+          },
+          {
+            "id": "14",
+            "x": 90,
+            "y": 73,
+            "role": "AI",
+            "n": [14]
+          },
+          {
+            "id": "15",
+            "x": 50,
+            "y": 90,
+            "role": "AR",
+            "n": [15]
+          }
+        ]
+      }
     ]
   },
   "hand": {
     "label": "Handball",
+    "layout": "barre",
     "clock": "up",
     "added": false,
+    "sinbin": { "label": "Exclusion 2 min", "min": 2, "color": "#ff8a00" },
     "periods": [
       { "name": "1re mi-temps", "short": "1re MT", "len": 30 },
       { "name": "2e mi-temps", "short": "2e MT", "len": 30 },
@@ -60,12 +364,44 @@
     "rules": [
       "But = 1 point (y compris sur un jet de 7 mètres).",
       "Suspension d'un joueur = 2 minutes."
+    ],
+    "onField": 7,
+    "pitch": "hand",
+    "positions": [
+      { "id": "GB", "label": "Gardien" },
+      { "id": "ALG", "label": "Ailier gauche" },
+      { "id": "ARG", "label": "Arrière gauche" },
+      { "id": "DC", "label": "Demi-centre" },
+      { "id": "ARD", "label": "Arrière droit" },
+      { "id": "ALD", "label": "Ailier droit" },
+      { "id": "PIV", "label": "Pivot" }
+    ],
+    "numbers": {
+      "GB": [1, 12, 16]
+    },
+    "formations": [
+      {
+        "id": "33",
+        "label": "3-3",
+        "slots": [
+          { "id": "gb", "x": 50, "y": 88, "role": "GB" },
+          { "id": "alg", "x": 10, "y": 40, "role": "ALG" },
+          { "id": "arg", "x": 26, "y": 62, "role": "ARG" },
+          { "id": "dc", "x": 50, "y": 66, "role": "DC" },
+          { "id": "ard", "x": 74, "y": 62, "role": "ARD" },
+          { "id": "ald", "x": 90, "y": 40, "role": "ALD" },
+          { "id": "piv", "x": 50, "y": 28, "role": "PIV" }
+        ]
+      }
     ]
   },
   "basket": {
     "label": "Basket",
+    "layout": "basket",
     "clock": "down",
     "added": false,
+    "fouls": true,
+    "shot": [24, 14],
     "periods": [
       { "name": "1er quart-temps", "short": "Q1", "len": 10 },
       { "name": "2e quart-temps", "short": "Q2", "len": 10 },
@@ -83,11 +419,36 @@
       "Lancer franc = 1 point.",
       "Tir à l'intérieur de la ligne à 3 points = 2 points.",
       "Tir derrière la ligne à 3 points = 3 points.",
-      "5 fautes pour un joueur = exclusion du match."
+      "5 fautes pour un joueur = exclusion du match.",
+      "Fautes d'équipe : à partir de la 5e dans un quart-temps, chaque faute donne des lancers francs (bonus).",
+      "Horloge des tirs : 24 secondes pour tirer, remise à 14 secondes après un rebond offensif."
+    ],
+    "onField": 5,
+    "pitch": "basket",
+    "positions": [
+      { "id": "MEN", "label": "Meneur" },
+      { "id": "ARR", "label": "Arrière" },
+      { "id": "AIL", "label": "Ailier" },
+      { "id": "AF", "label": "Ailier fort" },
+      { "id": "PIV", "label": "Pivot" }
+    ],
+    "formations": [
+      {
+        "id": "5",
+        "label": "5 postes",
+        "slots": [
+          { "id": "men", "x": 50, "y": 24, "role": "MEN" },
+          { "id": "arr", "x": 80, "y": 40, "role": "ARR" },
+          { "id": "ail", "x": 20, "y": 40, "role": "AIL" },
+          { "id": "af", "x": 68, "y": 68, "role": "AF" },
+          { "id": "piv", "x": 34, "y": 74, "role": "PIV" }
+        ]
+      }
     ]
   },
   "volley": {
     "label": "Volley-ball",
+    "layout": "empile",
     "clock": false,
     "added": false,
     "sets": { "win": 3, "points": 25, "last": 15 },
@@ -101,6 +462,54 @@
       "Un set se joue en 25 points, avec 2 points d'écart minimum.",
       "Le 5e set (décisif) se joue en 15 points, avec 2 points d'écart minimum.",
       "Le premier à gagner 3 sets remporte le match."
+    ],
+    "onField": 7,
+    "pitch": "volley",
+    "positions": [
+      { "id": "PAS", "label": "Passeur" },
+      { "id": "R4", "label": "Réceptionneur-attaquant" },
+      { "id": "CEN", "label": "Central" },
+      { "id": "POI", "label": "Pointu" },
+      { "id": "LIB", "label": "Libéro" }
+    ],
+    "formations": [
+      {
+        "id": "6",
+        "label": "6 + libéro",
+        "slots": [
+          { "id": "z4", "x": 18, "y": 24, "role": "POI" },
+          { "id": "z3", "x": 50, "y": 24, "role": "CEN" },
+          { "id": "z2", "x": 82, "y": 24, "role": "R4" },
+          { "id": "z5", "x": 18, "y": 70, "role": "R4" },
+          { "id": "z6", "x": 50, "y": 70, "role": "CEN" },
+          { "id": "z1", "x": 82, "y": 70, "role": "PAS" },
+          { "id": "lib", "x": 50, "y": 100, "role": "LIB", "bench": true }
+        ]
+      },
+      {
+        "id": "4",
+        "label": "4 joueurs (4 × 4)",
+        "slots": [
+          { "id": "a4", "x": 26, "y": 26, "role": "R4" },
+          { "id": "a2", "x": 74, "y": 26, "role": "POI" },
+          { "id": "a5", "x": 26, "y": 72, "role": "CEN" },
+          { "id": "a1", "x": 74, "y": 72, "role": "PAS" }
+        ]
+      }
     ]
+  },
+  "karting": {
+    "label": "Karting", "layout": "karting", "clock": false, "added": false, "karting": true,
+    "periods": [],
+    "points": [ { "value": 1, "label": "Point", "banner": false } ],
+    "time": "Chronométrage Apex Timing : classement, temps et écarts lus en direct depuis le live timing du circuit (onglet Match).",
+    "rules": [
+      "Course (sprint, finale) : classement au nombre de tours, puis à l'ordre de passage.",
+      "Essais, qualifications, loisir : classement au meilleur tour.",
+      "Endurance : équipes, relais de pilotes et arrêts aux stands obligatoires."
+    ],
+    "onField": 0,
+    "positions": [],
+    "formations": []
   }
 }

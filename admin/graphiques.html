@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Graphiques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../index.html" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard <small>Régie</small></a>
+  <nav class="tabs">
+    <a href="./">Studio</a>
+    <a href="match.html">Match</a>
+    <a href="clubs.html">Clubs</a>
+    <a href="habillage.html">Habillage</a>
+    <a href="graphiques.html" class="on">Graphiques</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap wide">
+  <div class="gfx">
+
+    <!-- ===== Liste des graphiques ===== -->
+    <aside class="panel">
+      <div class="ph">Graphiques <span class="spacer"></span><span class="hint" id="gCount" style="margin:0"></span></div>
+      <div class="pb">
+        <div class="lbl">Nouveau, à partir d'un modèle</div>
+        <div class="namecolor">
+          <select id="template">
+            <option value="vide">Vide</option>
+            <option value="sponsor">Logo sponsor (coin)</option>
+            <option value="homme">Homme du match</option>
+            <option value="mini">Score + chrono minimal</option>
+            <option value="prochain">Prochain match</option>
+          </select>
+          <button class="btn primary" id="newG">Créer</button>
+        </div>
+        <div id="gList" style="margin-top:14px"></div>
+        <p class="hint">Chaque graphique apparaît comme une tuile dans la barre du Studio : « Préparer » puis « Prendre ».</p>
+      </div>
+    </aside>
+
+    <!-- ===== Canevas ===== -->
+    <section class="panel" id="canvasPanel">
+      <div class="ph">
+        <input type="text" id="gName" maxlength="40" class="ph-input">
+        <span class="spacer"></span>
+        <select id="gAnim" class="ph-select" title="Animation d'entrée et de sortie">
+          <option value="slabs">Plaques UNI</option>
+          <option value="slide">Glissé</option>
+          <option value="fade">Fondu</option>
+          <option value="none">Sans animation</option>
+        </select>
+        <button class="btn sm ghost" id="dupG">Dupliquer</button>
+        <button class="btn sm outline-red" id="delG">Supprimer</button>
+      </div>
+      <div class="pb">
+        <div class="confirm hidden" id="delConfirm" style="margin:0 0 12px">
+          <p id="delText"></p>
+          <div class="row"><button class="btn red" id="delYes">Oui, supprimer</button><button class="btn ghost" id="delNo">Annuler</button></div>
+        </div>
+        <div class="gstage" id="stage">
+          <div class="gcanvas" id="canvas"></div>
+          <div class="edit-layer" id="layer">
+            <div class="safe"></div>
+            <i class="guide gx" id="gx"></i><i class="guide gy" id="gy"></i>
+            <div class="ebox" id="box" hidden><span class="handle" id="handle"></span><b id="boxName"></b></div>
+          </div>
+        </div>
+        <p class="hint">Clique un calque pour le choisir, glisse-le pour le déplacer, tire le coin pour le redimensionner. Flèches du clavier : déplacement fin (Maj : 10 px).</p>
+      </div>
+    </section>
+
+    <!-- ===== Calques, propriétés, variables ===== -->
+    <aside class="col">
+      <nav class="subtabs compact" data-subtabs="graphiques" style="margin:0">
+        <button data-sub="calques">Calques</button>
+        <button data-sub="variables">Variables <small id="vCount"></small></button>
+      </nav>
+      <div class="col" data-subpane="calques">
+        <section class="panel">
+          <div class="pb">
+            <div class="row">
+              <button class="btn sm" data-add="block">+ Bloc</button>
+              <button class="btn sm" data-add="text">+ Texte</button>
+              <button class="btn sm" data-add="image">+ Image</button>
+              <button class="btn sm" data-add="hatch">+ Hachures</button>
+            </div>
+            <div id="lList" style="margin-top:10px"></div>
+          </div>
+        </section>
+        <section class="panel" id="propsPanel">
+          <div class="ph" id="propsTitle">Propriétés</div>
+          <div id="props"></div>
+        </section>
+      </div>
+      <section class="panel" data-subpane="variables" hidden>
+        <div class="pb">
+          <p class="hint" style="margin:0 0 10px">Une variable est un texte que tu changes depuis le <b>Studio</b> (carte du graphique), sans revenir ici : nom du joueur, minute, horaire… Insère-la dans un calque texte.</p>
+          <div id="vList"></div>
+          <div class="namecolor" style="margin-top:10px">
+            <input type="text" id="vNew" maxlength="24" placeholder="Nouvelle variable (ex. Joueur)">
+            <button class="btn primary" id="vAdd">Ajouter</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <div class="panel empty hidden" id="empty"><div class="pb"><p>Aucun graphique pour l'instant.</p><p class="hint">Choisis un modèle à gauche et clique « Créer ».</p></div></div>
+  </div>
+
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
+</main>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/graphiques.js"></script>
+<script src="../assets/editeur.js"></script>
+</body>
+</html>

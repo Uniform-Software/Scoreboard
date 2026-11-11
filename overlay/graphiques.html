@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Graphiques</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/overlay.css">
+<style>
+  /* Graphiques personnalisés (onglet Graphiques). Chacun s'affiche ou se masque depuis le Studio ;
+     ses calques entrent l'un après l'autre selon l'animation choisie. */
+  .graphic { position: absolute; inset: 0; pointer-events: none; }
+  .graphic .gl { transition: opacity .25s, transform .25s, clip-path .25s; }
+
+  /* Plaques UNI : chaque calque se dévoile derrière un aplat d'accent */
+  .a-slabs .gl { clip-path: inset(0 100% 0 0 round var(--r)); }
+  .a-slabs .gl::after { content: ''; position: absolute; inset: 0; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+  .a-slabs.on .gl { clip-path: inset(0 0 0 0); transition: clip-path .5s cubic-bezier(.77,0,.18,1) calc(.1s + var(--i) * .09s); }
+  .a-slabs.intro .gl::after { animation: slabIn .8s cubic-bezier(.77,0,.18,1) calc(var(--i) * .09s) both; }
+
+  /* Glissé */
+  .a-slide .gl { opacity: 0; transform: translateX(-60px); }
+  .a-slide.on .gl { opacity: var(--o, 1); transform: none; transition: opacity .4s calc(var(--i) * .07s), transform .6s cubic-bezier(.2,.9,.2,1) calc(var(--i) * .07s); }
+
+  /* Fondu */
+  .a-fade .gl { opacity: 0; }
+  .a-fade.on .gl { opacity: var(--o, 1); transition: opacity .5s calc(var(--i) * .06s); }
+
+  /* Aucune animation */
+  .a-none .gl { visibility: hidden; transition: none; }
+  .a-none.on .gl { visibility: visible; }
+</style>
+</head>
+<body>
+<div id="all"></div>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/graphiques.js"></script>
+<script src="../assets/twitch.js"></script>
+<script>
+const { $ } = SB;
+SB.applyLook();
+
+let live = null;   // graphiques actuels (régie)
+let A = null;      // antenne
+let S = null;      // score (champs en direct, couleurs des équipes)
+let E = null;      // composition (titre de la compétition)
+const built = {};  // id -> { key, node }
+
+function render() {
+  const G = SB.sceneContent(A, 'graphiques', live);
+  if (!G || !A) return;
+  // champs {twitch.…} : connexion au tchat seulement si un graphique en utilise
+  Twitch.follow(JSON.stringify(G.items).includes('{twitch.') ? SB.look().twitch.channel : '');
+  const ids = new Set(G.items.map(g => g.id));
+  // retire les graphiques supprimés
+  for (const id of Object.keys(built)) if (!ids.has(id)) { built[id].node.remove(); delete built[id]; }
+  for (const g of G.items) {
+    let b = built[g.id];
+    if (!b) {
+      const node = document.createElement('div');
+      node.dataset.id = g.id;
+      $('all').append(node);
+      b = built[g.id] = { key: '', node, on: false };
+    }
+    // reconstruit si le graphique a changé (ou les couleurs des équipes)
+    const key = JSON.stringify([g, S && [S.home.color, S.away.color, S.home.logo, S.away.logo]]);
+    if (key !== b.key) { b.key = key; Graph.render(b.node, g, S, E); }
+    b.node.className = 'graphic a-' + g.anim + (b.on ? ' on' : '');
+    const v = !SB.EDIT && !!A[SB.VUE]['g-' + g.id];
+    if (v !== b.on) {
+      b.on = v;
+      if (v) { SB.replay(b.node, 'intro'); setTimeout(() => b.node.classList.remove('intro'), 3000); }
+      requestAnimationFrame(() => b.node.classList.toggle('on', v));
+    }
+  }
+}
+
+(async () => {
+  await SB.loadSports();
+  SB.watch('graphiques', st => { live = st || { items: [] }; render(); });
+  SB.watch('score', st => { S = SB.fixScore(st || SB.newScore()); render(); }, 1000);
+  SB.watch('equipes', st => { E = st; render(); }, 2000);
+  SB.watchScene(a => { A = a; render(); });
+  // champs {twitch.…} : connexion au tchat seulement si un graphique en utilise
+  SB.watchLook(() => render());
+  // champs en direct (chrono…)
+  setInterval(() => { for (const b of Object.values(built)) Graph.update(b.node, S, E); }, 250);
+})();
+</script>
+</body>
+</html>

@@ -1,17 +1,95 @@
-/* overlay.css : base commune des overlays (sources navigateur OBS en 1920 × 1080, fond transparent). */
+/* overlay.css : base commune des overlays (sources navigateur OBS en 1920 × 1080, fond transparent).
+   Direction artistique flat Uniform Systems : aplats de couleur, coins arrondis, aucun dégradé ni ombre.
+   Typographie Archivo : étroite et grasse pour les noms et les chiffres, large pour les petites étiquettes. */
 
 :root {
-  --accent: #ffc20e;   /* couleur d'accent (modifiable avec ?accent=rrggbb) */
-  --ink: #0b0d12;      /* fond sombre / texte sur fond clair */
-  --hot: #e5262f;      /* alertes : temps additionnel, fin du chrono */
-  --font: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', Arial, sans-serif;
+  --accent: #2448ff;     /* couleur d'accent (modifiable avec ?accent=rrggbb) */
+  --on-accent: #ffffff;  /* texte posé sur l'accent (calculé automatiquement) */
+  --ink: #0b0b0f;        /* noir */
+  --paper: #ffffff;      /* blanc */
+  --mist: #eceef2;       /* gris très clair (séparateurs, fonds secondaires) */
+  --mute: #8a8f9c;       /* texte secondaire */
+  --hot: #ff3b30;        /* alertes : temps additionnel, fin du chrono */
+  --go: #12b76a;         /* entrée (remplacement) */
+  --r: 12px;             /* arrondi des blocs */
+  --pitch: #123a2b;      /* terrain des compositions */
+  --font: 'Archivo', 'Arial Narrow', 'Segoe UI', Arial, sans-serif;
 }
 
 html, body {
   margin: 0; width: 1920px; height: 1080px; overflow: hidden;
-  background: transparent; color: #fff;
+  background: transparent; color: var(--ink);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
 .hidden { display: none !important; }
+
+/* Largeurs de la police */
+.cond { font-stretch: 75%; }     /* noms */
+.wide { font-stretch: 125%; }    /* étiquettes */
+
+/* ======================================================================
+   Signature animée UNI
+   ====================================================================== */
+
+/* Plaques : trois aplats (accent, noir, puis couleur du bloc) qui balaient un élément
+   en cascade à l'entrée (.intro) et à la sortie (.outro). Le contenu apparaît dessous. */
+.slabs { position: absolute; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.slabs i { position: absolute; inset: 0; transform: scaleX(0); }
+.slabs i:nth-child(1) { background: var(--accent); }
+.slabs i:nth-child(2) { background: var(--ink); }
+.slabs i:nth-child(3) { background: var(--slab, var(--paper)); }
+.intro > .slabs i { animation: slabIn .9s cubic-bezier(.77,0,.18,1) both; }   /* plaques du bloc lui-même seulement */
+.outro > .slabs i { animation: slabOut .8s cubic-bezier(.77,0,.18,1) both; }
+.slabs i:nth-child(2) { animation-delay: .07s; }
+.slabs i:nth-child(3) { animation-delay: .14s; }
+@keyframes slabIn {
+  0%    { transform: scaleX(0); transform-origin: left; }
+  48%   { transform: scaleX(1); transform-origin: left; }
+  48.1% { transform: scaleX(1); transform-origin: right; }
+  100%  { transform: scaleX(0); transform-origin: right; }
+}
+@keyframes slabOut {
+  0%    { transform: scaleX(0); transform-origin: right; }
+  48%   { transform: scaleX(1); transform-origin: right; }
+  48.1% { transform: scaleX(1); transform-origin: left; }
+  100%  { transform: scaleX(0); transform-origin: left; }
+}
+
+/* Texte qui monte depuis un masque */
+.rise { display: block; overflow: hidden; }
+.rise > * { display: block; transform: translateY(105%); transition: transform .3s ease; }
+.on .rise > * { transform: none; transition: transform .6s cubic-bezier(.2,.9,.2,1) var(--d, .5s); }
+
+/* Lettres qui arrivent une à une (SB.letters) */
+.kin span { display: inline-block; opacity: 0; transform: translateY(70%) scale(.5); }
+.show .kin span, .on .kin span { animation: kin .55s cubic-bezier(.3,1.6,.5,1) calc(var(--d, .25s) + var(--i) * 35ms) both; }
+@keyframes kin { from { opacity: 0; transform: translateY(70%) scale(.5); } to { opacity: 1; transform: none; } }
+
+/* Hachures animées (motif d'accent) */
+.hatch { background: repeating-linear-gradient(-45deg, currentColor 0 4px, transparent 4px 12px); animation: hatch .9s linear infinite; }
+@keyframes hatch { to { background-position: 16.97px 0; } }   /* 12 px × √2 : une période exacte, boucle sans saut */
+
+/* Petit « pop » (pastilles, blasons, VS) */
+@keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: none; } }
+
+/* Transition « coupe » (mode studio) : changement instantané. Les animations se jouent en 0 s,
+   chaque élément arrive donc directement dans son état final (le bandeau défilant continue). */
+html.cut *:not(.t-move), html.cut *::before, html.cut *::after {
+  transition-duration: 0s !important; transition-delay: 0s !important;
+  animation-duration: 0s !important; animation-delay: 0s !important;
+}
+
+/* Options de l'habillage */
+.no-hatch .hatch, .no-hatch .score .fx::after { display: none !important; }
+
+/* ======================================================================
+   Graphiques personnalisés (assets/graphiques.js)
+   ====================================================================== */
+.gl { position: absolute; overflow: hidden; opacity: var(--o, 1); }
+.gl-text { display: flex; align-items: center; line-height: 1.05; white-space: nowrap; }
+.gl-text span { overflow: hidden; text-overflow: ellipsis; }
+.gl-image img { width: 100%; height: 100%; display: block; }
+/* image pas encore choisie : rien à l'antenne (l'éditeur, lui, montre un motif) */
+.gl-image.empty { display: none; }

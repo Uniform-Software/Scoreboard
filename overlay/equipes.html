@@ -2,133 +2,118 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Overlay · Équipes</title>
+<title>Overlay · Compositions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/overlay.css">
 <style>
+  /* Compositions sur terrain. Deux dispositions (choisies dans le Studio) :
+     « face à face » : terrain entier, une équipe par moitié, bancs de chaque côté ;
+     « une équipe »  : grand demi-terrain, fiche de l'équipe à gauche, banc à droite. */
+  #stage { position: absolute; inset: 0; opacity: 0; transition: opacity .3s .5s; }
+  #board { position: absolute; inset: 0; transform: translate(var(--equipes-dx, 0), var(--equipes-dy, 0)) scale(var(--equipes-s, 1)); transform-origin: center; }
+  #stage.on { opacity: 1; transition: opacity .2s; }
+
   /* ---------- Titre ---------- */
-  .head {
-    position: absolute; top: 64px; left: 0; right: 0;
-    display: flex; justify-content: center;
-  }
-  .headin {
-    display: flex; align-items: stretch; height: 64px;
-    background: var(--ink); box-shadow: 0 14px 40px rgba(0,0,0,.5);
-    border-radius: 3px; overflow: hidden;
-    clip-path: inset(0 50% 0 50%);
-    transition: clip-path .35s cubic-bezier(.7,0,.3,1) .25s;
-  }
-  .on .headin { clip-path: inset(0 0 0 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1) .05s; }
-  .tag {
-    display: flex; align-items: center; padding: 0 28px 0 24px;
-    background: var(--accent); color: var(--ink);
-    font-size: 26px; font-weight: 800; font-style: italic; letter-spacing: .12em; text-transform: uppercase;
-    clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-  }
-  .title {
-    display: flex; align-items: center; padding: 0 34px 0 22px;
-    font-size: 34px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
-  }
+  .head { position: absolute; top: 48px; left: 0; right: 0; display: flex; justify-content: center; }
+  .headin { position: relative; display: flex; align-items: stretch; height: 58px; border-radius: var(--r); overflow: hidden; }
+  .tag { display: flex; align-items: center; padding: 0 24px; background: var(--accent); color: var(--on-accent); font-size: 17px; font-weight: 700; font-stretch: 125%; letter-spacing: .1em; text-transform: uppercase; }
+  .title { display: flex; align-items: center; padding: 0 28px; background: var(--paper); color: var(--ink); font-size: 30px; font-weight: 800; font-stretch: 75%; text-transform: uppercase; white-space: nowrap; }
+  .title.kin { --d: .5s; }
 
-  /* ---------- Panneaux ---------- */
-  .panels { position: absolute; top: 172px; bottom: 76px; left: 110px; right: 110px; display: flex; gap: 130px; }
-  .panel {
-    position: relative; flex: 1 1 0; min-width: 0;
-    display: flex; flex-direction: column;
-    background: linear-gradient(180deg, rgba(20,23,31,.95), rgba(9,11,15,.95));
-    border-radius: 3px; overflow: hidden;
-    box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07);
-    transition: clip-path .4s cubic-bezier(.7,0,.3,1) .1s;
-  }
-  .panel.home { clip-path: inset(0 0 0 100%); }
-  .panel.away { clip-path: inset(0 100% 0 0); }
-  .on .panel { clip-path: inset(0 0 0 0); transition: clip-path .7s cubic-bezier(.77,0,.18,1) .3s; }
+  /* ---------- Terrain ---------- */
+  .pitchwrap { position: absolute; border-radius: 16px; --slab: var(--pitch); }
+  .pitch-svg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 16px; }
+  .pitch-svg .turf { fill: var(--pitch); }
+  .pitch-svg .lines * { fill: none; stroke: rgba(255,255,255,.55); stroke-width: var(--lw); }
+  .pitch-svg .lines .dot { fill: rgba(255,255,255,.55); stroke: none; }
+  .pitch-svg .lines .dash { stroke-dasharray: .015 .015; }
+  .pitch-svg .lines .net { stroke-width: calc(var(--lw) * 3); stroke: rgba(255,255,255,.8); }
+  /* le terrain se dessine à l'entrée */
+  .intro .pitch-svg .lines :not(.dash):not(.dot) { stroke-dasharray: 1; animation: draw 1.1s cubic-bezier(.6,0,.2,1) .35s both; }
+  .intro .pitch-svg .lines .dash, .intro .pitch-svg .lines .dot { animation: fadeIn .6s 1s both; }
+  @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes fadeIn { from { opacity: 0; } }
 
-  .phead {
-    position: relative; display: flex; align-items: center; gap: 24px;
-    height: 128px; padding: 0 36px; flex: none;
-    background: var(--c); color: var(--t);
+  /* ---------- Pions des joueurs ---------- */
+  .tok {
+    position: absolute; z-index: 2; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px; width: calc(var(--tok) * 1.9);
   }
-  .phead::before {                       /* léger relief sur la couleur de l'équipe */
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.22));
+  .face {
+    position: relative; width: var(--tok); height: var(--tok); border-radius: 50%; overflow: hidden;
+    background: var(--c); box-shadow: 0 0 0 3px var(--c), 0 0 0 calc(3px + var(--tok) * .05) var(--paper);
   }
-  .phead::after {                        /* filet d'accent sous l'en-tête */
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--accent);
-    transform: scaleX(0); transform-origin: left; transition: transform .3s;
+  .face img { width: 100%; height: 100%; object-fit: cover; }
+  .face svg { position: absolute; left: 12%; bottom: -4%; width: 76%; fill: var(--c2); opacity: .4; }
+  .face .big { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--tok) * .42); font-weight: 900; font-variant-numeric: tabular-nums; color: var(--t); }
+  .face.has .big { display: none; }
+  .badge {
+    position: absolute; right: calc(50% - var(--tok) * .62); top: calc(var(--tok) * .62);
+    min-width: calc(var(--tok) * .36); height: calc(var(--tok) * .36); padding: 0 4px; border-radius: 99px;
+    display: none; align-items: center; justify-content: center;
+    background: var(--paper); color: var(--ink); font-size: calc(var(--tok) * .2); font-weight: 900; font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--c);
   }
-  .away .phead::after { transform-origin: right; }
-  .on .phead::after { transform: scaleX(1); transition: transform .6s cubic-bezier(.2,.9,.2,1) .9s; }
-  .away .phead { flex-direction: row-reverse; text-align: right; }
-  .phead > * { position: relative; }
-  .plogo { display: none; height: 88px; max-width: 150px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
-  .plogo.has { display: block; }
-  .pname {
-    flex: 1; min-width: 0;
-    font-size: 58px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-    white-space: nowrap; overflow: hidden;
-    text-shadow: 0 2px 6px rgba(0,0,0,.25);
-  }
-  .phead .pname, .phead .plogo { opacity: 0; transform: translateY(24px); transition: opacity .2s, transform .2s; }
-  .on .phead .pname, .on .phead .plogo { opacity: 1; transform: none; transition: opacity .5s .75s, transform .6s cubic-bezier(.2,.9,.2,1) .75s; }
-
-  .pbody { flex: 1; min-height: 0; overflow: hidden; padding: 26px 36px 10px; font-size: var(--fs, 34px); }
-  .ptitle {
-    display: flex; align-items: center; gap: .5em; margin: .7em 0 .35em;
-    font-size: .56em; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent);
-  }
-  .ptitle::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.12); }
-  .ptitle:first-child { margin-top: 0; }
-  .pbody ul { list-style: none; margin: 0; padding: 0; }
-  .pbody li {
-    display: flex; align-items: center; gap: .55em;
-    padding: .13em 0; line-height: 1.22;
-    font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,.05);
-    opacity: 0; transform: translateX(-26px);
-    transition: opacity .2s, transform .2s;
-  }
-  .away .pbody li { transform: translateX(26px); }
-  .on .pbody li {
-    opacity: 1; transform: none;
-    transition: opacity .45s, transform .55s cubic-bezier(.2,.9,.2,1);
-    transition-delay: calc(1s + var(--i, 0) * 45ms);
-  }
-  .pbody li .n {
-    flex: none; width: 1.75em; text-align: center;
-    font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
-    background: #fff; border-radius: 2px; box-shadow: inset 0 -3px 0 var(--c);
-  }
-  .pbody li.nonum .n { visibility: hidden; }
-  .pbody li .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pbody li .cap {
-    display: none; flex: none; font-size: .6em; font-weight: 800; padding: 0 .4em;
-    color: var(--ink); background: var(--accent); border-radius: 2px;
-  }
-  .pbody li.captain .cap { display: inline-block; }
-  .subs li { color: rgba(255,255,255,.72); font-weight: 500; }
-
-  .coach {
-    flex: none; display: flex; align-items: center; gap: 12px;
-    padding: 16px 36px; border-top: 1px solid rgba(255,255,255,.08);
-    font-size: 24px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-    opacity: 0; transition: opacity .2s;
-  }
-  .coach b { color: var(--accent); font-weight: 700; letter-spacing: .24em; font-size: .8em; }
-  .on .coach { opacity: 1; transition: opacity .6s 1.4s; }
-
-  /* ---------- VS ---------- */
-  .vs {
-    position: absolute; top: 172px; left: 50%; width: 96px; height: 128px; margin-left: -48px;
+  .face.has + .badge { display: flex; }
+  .cap {
+    position: absolute; left: calc(50% - var(--tok) * .62); top: calc(var(--tok) * .62 - var(--tok) * .7);
+    width: calc(var(--tok) * .32); height: calc(var(--tok) * .32); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 54px; font-weight: 800; font-style: italic; color: var(--ink);
-    background: var(--accent);
-    clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%);
-    transform: scale(0); transition: transform .25s;
+    background: var(--accent); color: var(--on-accent); font-style: normal; font-size: calc(var(--tok) * .17); font-weight: 900;
   }
-  .on .vs { transform: none; transition: transform .55s cubic-bezier(.3,1.5,.5,1) .85s; }
+  .tname {
+    max-width: 100%; padding: 3px 8px; border-radius: 6px;
+    background: var(--paper); color: var(--ink);
+    font-size: calc(var(--tok) * .2 + 4px); font-weight: 800; font-stretch: 75%; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tok.vacant .face { background: transparent; box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
+  .tok.vacant .big { color: rgba(255,255,255,.5); }
+  .tok.vacant .tname { display: none; }
+  /* arrivée ligne par ligne : gardien, défense, milieu, attaque */
+  .intro .tok { animation: tokIn .6s cubic-bezier(.3,1.5,.5,1) calc(1.1s + var(--row) * .14s + var(--col) * .04s) both; }
+  @keyframes tokIn { from { opacity: 0; transform: translate(-50%, -30%) scale(.4); } }
+
+  /* ---------- En-têtes d'équipe ---------- */
+  .teamhead {
+    position: absolute; display: flex; align-items: center; gap: 16px; height: 76px; padding: 0 22px 0 12px;
+    background: var(--c); color: var(--t); border-radius: var(--r);
+  }
+  .teamhead.away { flex-direction: row-reverse; padding: 0 12px 0 22px; }
+  .crest { flex: none; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; background: var(--paper); color: var(--ink); font-size: 18px; font-weight: 900; font-stretch: 125%; }
+  .crest img { max-width: 46px; max-height: 46px; object-fit: contain; }
+  .teamhead b { font-size: 36px; font-weight: 800; font-stretch: 75%; text-transform: uppercase; white-space: nowrap; }
+  .teamhead small { display: block; font-size: 14px; font-weight: 700; font-stretch: 125%; letter-spacing: .1em; opacity: .8; }
+  .intro .teamhead { animation: slideIn .6s cubic-bezier(.2,.9,.2,1) .7s both; }
+  .intro .teamhead.away { animation-name: slideInR; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-40px); } }
+  @keyframes slideInR { from { opacity: 0; transform: translateX(40px); } }
+
+  /* ---------- Bancs ---------- */
+  .bench { position: absolute; display: flex; flex-direction: column; border-radius: var(--r); overflow: hidden; background: var(--paper); color: var(--ink); }
+  .bench h3 { margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 700; font-stretch: 125%; letter-spacing: .12em; text-transform: uppercase; color: var(--t); background: var(--c); }
+  .bench ul { list-style: none; margin: 0; padding: 6px 14px; flex: 1; min-height: 0; overflow: hidden; }
+  .bench li { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 2px solid var(--mist); font-size: var(--bfs, 21px); font-weight: 700; font-stretch: 87.5%; text-transform: uppercase; white-space: nowrap; }
+  .bench li .n { flex: none; min-width: 1.7em; text-align: center; font-weight: 900; font-stretch: 100%; background: var(--c); color: var(--t); border-radius: 5px; }
+  .bench li span { overflow: hidden; text-overflow: ellipsis; }
+  .bench li em { margin-left: auto; font-style: normal; font-size: .6em; font-weight: 700; font-stretch: 125%; letter-spacing: .08em; color: var(--mute); }
+  .bench .coach { padding: 12px 16px; background: var(--mist); font-size: 19px; font-weight: 800; font-stretch: 75%; text-transform: uppercase; }
+  .bench .coach b { display: block; font-size: 11px; font-weight: 700; font-stretch: 125%; letter-spacing: .12em; color: var(--mute); }
+  .intro .bench { animation: fadeUp .6s cubic-bezier(.2,.9,.2,1) 2s both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } }
+
+  /* ---------- Fiche d'équipe (disposition « une équipe ») ---------- */
+  .teamcard { position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+  .teamcard .crest { width: 150px; height: 150px; border-radius: 28px; font-size: 44px; }
+  .teamcard .crest img { max-width: 124px; max-height: 124px; }
+  .teamcard .tn { padding: 10px 22px; border-radius: var(--r); background: var(--c); color: var(--t); font-size: 64px; line-height: 1; font-weight: 800; font-stretch: 75%; text-transform: uppercase; }
+  .teamcard .fo { padding: 8px 16px; border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 20px; font-weight: 700; font-stretch: 125%; letter-spacing: .08em; }
+  .intro .teamcard > * { animation: slideIn .6s cubic-bezier(.2,.9,.2,1) both; }
+  .intro .teamcard > :nth-child(1) { animation-delay: .6s; }
+  .intro .teamcard > :nth-child(2) { animation-delay: .75s; }
+  .intro .teamcard > :nth-child(3) { animation-delay: .9s; }
 </style>
 </head>
 <body>
@@ -136,134 +121,229 @@
   <div class="head">
     <div class="headin">
       <div class="tag">Compositions</div>
-      <div class="title" id="title"></div>
+      <div class="title kin" id="title"></div>
+      <div class="slabs"><i></i><i></i><i></i></div>
     </div>
   </div>
-
-  <div class="panels">
-    <section class="panel home" id="home">
-      <div class="phead" id="homeHead"><img class="plogo" id="homeLogo" alt=""><div class="pname" id="homeName"></div></div>
-      <div class="pbody" id="homeBody">
-        <div class="ptitle">Titulaires</div>
-        <ul id="homeStarters"></ul>
-        <div class="ptitle" id="homeSubsTitle">Remplaçants</div>
-        <ul class="subs" id="homeSubs"></ul>
-      </div>
-      <div class="coach" id="homeCoach"><b>Entraîneur</b><span></span></div>
-    </section>
-    <section class="panel away" id="away">
-      <div class="phead" id="awayHead"><img class="plogo" id="awayLogo" alt=""><div class="pname" id="awayName"></div></div>
-      <div class="pbody" id="awayBody">
-        <div class="ptitle">Titulaires</div>
-        <ul id="awayStarters"></ul>
-        <div class="ptitle" id="awaySubsTitle">Remplaçants</div>
-        <ul class="subs" id="awaySubs"></ul>
-      </div>
-      <div class="coach" id="awayCoach"><b>Entraîneur</b><span></span></div>
-    </section>
-  </div>
-  <div class="vs">VS</div>
+  <div id="board"></div>
 </div>
 
 <script src="../assets/commun.js"></script>
+<script src="../assets/terrain.js"></script>
 <script>
 const { $, setText } = SB;
-const PREVIEW = SB.params.has('preview');
 SB.applyLook();
 
-let S = null;
-let lastJson = '';
+let live = null;       // composition actuelle (régie)
+let A = null;          // antenne
+let S = null;          // score : sport
+let C = null;          // bibliothèque des clubs
+let shown = null;
+let builtKey = '';
+let introTimer = null;
 
-// Si une image de logo est introuvable, on la cache simplement
-document.querySelectorAll('img').forEach(img => { img.onerror = () => img.classList.remove('has'); });
+// Silhouette plate (joueur sans photo)
+const SILHOUETTE = '<svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="50" cy="30" r="22"/><path d="M8 90 C8 62 26 54 50 54 C74 54 92 62 92 90 Z"/></svg>';
 
-function setLogo(img, v) {
-  const src = !v ? '' : /^https:\/\//.test(v) ? v : '../logos/' + v;
-  if (src) {
-    if (img.getAttribute('src') !== src) img.src = src;
-    img.classList.add('has');
-  } else {
-    img.removeAttribute('src');
-    img.classList.remove('has');
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html) e.innerHTML = html;
+  return e;
+}
+
+function teamVars(node, club) {
+  node.style.setProperty('--c', club.color);
+  node.style.setProperty('--c2', club.color2);
+  node.style.setProperty('--t', SB.textColor(club.color));
+}
+
+function crest(club) {
+  const c = el('div', 'crest');
+  const src = SB.logoUrl(club.logo);
+  if (src) { const img = new Image(); img.src = src; c.append(img); } else c.textContent = SB.code(club);
+  return c;
+}
+
+// Pion d'un joueur (photo, ou silhouette + grand numéro)
+function token(o, club, pos, row, col) {
+  const t = el('div', 'tok' + (o.player ? '' : ' vacant'));
+  t.style.left = pos.left + '%';
+  t.style.top = pos.top + '%';
+  t.style.setProperty('--row', row);
+  t.style.setProperty('--col', col);
+  teamVars(t, club);
+  const p = o.player;
+  const face = el('div', 'face' + (p && p.photo ? ' has' : ''));
+  if (p && p.photo) { const img = new Image(); img.src = SB.logoUrl(p.photo); face.append(img); }
+  else face.insertAdjacentHTML('beforeend', SILHOUETTE);
+  const big = el('b', 'big');
+  big.textContent = p ? (p.number || '') : '';
+  face.append(big);
+  t.append(face);
+  const badge = el('b', 'badge');
+  badge.textContent = p ? p.number : '';
+  t.append(badge);
+  if (p && p.captain) { const c = el('i', 'cap'); c.textContent = 'C'; t.append(c); }
+  const n = el('div', 'tname');
+  n.textContent = p ? (p.last || p.first) : '';
+  t.append(n);
+  return t;
+}
+
+// Rang (ligne) de chaque poste : du gardien (en bas) vers l'attaque, pour l'arrivée en cascade
+function rows(slots) {
+  const ys = [...new Set(slots.map(s => Math.round(s.y / 8)))].sort((a, b) => b - a);
+  return s => ys.indexOf(Math.round(s.y / 8));
+}
+
+function benchBox(L, x, y, w, h) {
+  const b = el('div', 'bench');
+  Object.assign(b.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  teamVars(b, L.club);
+  const h3 = el('h3');
+  h3.textContent = 'Remplaçants';
+  b.append(h3);
+  const ul = el('ul');
+  const benchSlots = Terrain.place(L.sp, L.formation, L.starters, L.slots).filter(o => o.slot.bench && o.player);
+  const list = [...benchSlots.map(o => [o.player, (L.sp.positions.find(p => p.id === o.slot.role) || {}).label]), ...L.subs.map(p => [p, ''])];
+  for (const [p, tag] of list) {
+    const li = el('li');
+    li.innerHTML = '<b class="n"></b><span></span>' + (tag ? '<em></em>' : '');
+    li.querySelector('.n').textContent = p.number;
+    li.querySelector('span').textContent = SB.fullName(p);
+    if (tag) li.querySelector('em').textContent = tag;
+    ul.append(li);
+  }
+  b.append(ul);
+  if (L.club.coach) {
+    const c = el('div', 'coach');
+    c.innerHTML = '<b>Entraîneur</b><span></span>';
+    c.querySelector('span').textContent = L.club.coach;
+    b.append(c);
+  }
+  // texte plus petit si la liste est longue
+  b.style.setProperty('--bfs', Math.max(14, Math.min(21, Math.floor((h - 140) / Math.max(1, list.length) / 1.6))) + 'px');
+  return b;
+}
+
+function pitchBox(kind, mode, x, y, w, h) {
+  const box = el('div', 'pitchwrap');
+  Object.assign(box.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  box.innerHTML = Terrain.svg(kind, mode) + '<div class="slabs"><i></i><i></i><i></i></div>';
+  return box;
+}
+
+// Plus grand rectangle de rapport r tenant dans w × h
+const fit = (r, w, h) => (w / h > r ? [h * r, h] : [w, w / r]);
+
+function buildFace(kind, L) {
+  const board = $('board');
+  const r = Terrain.ratio(kind, 'full');
+  const benchW = 290, gap = 26, top = 236, bottom = 50;
+  const [pw, ph] = fit(r, 1920 - 2 * (benchW + gap) - 120, 1080 - top - bottom);
+  const px = (1920 - pw) / 2, py = top;
+  const pitch = pitchBox(kind, 'full', px, py, pw, ph);
+  const tok = Math.max(46, Math.min(84, ph * (L.home && L.home.formation && L.home.formation.slots.length > 11 ? .085 : .1)));
+  pitch.style.setProperty('--tok', tok + 'px');
+
+  for (const side of ['home', 'away']) {
+    const T = L[side];
+    if (!T || !T.formation) continue;
+    const placed = Terrain.place(T.sp, T.formation, T.starters, T.slots).filter(o => !o.slot.bench);
+    const rowOf = rows(placed.map(o => o.slot));
+    placed.forEach((o, k) => pitch.append(token(o, T.club, Terrain.point('full', side, o.slot.x, o.slot.y), rowOf(o.slot), k % 4)));
+
+    // en-tête au-dessus de chaque moitié
+    const head = el('div', 'teamhead ' + side);
+    teamVars(head, T.club);
+    head.append(crest(T.club));
+    const txt = el('div');
+    txt.innerHTML = '<b></b><small></small>';
+    txt.querySelector('b').textContent = T.club.name;
+    txt.querySelector('small').textContent = T.formation.label;
+    head.append(txt);
+    Object.assign(head.style, side === 'home' ? { left: px + 'px', top: (top - 96) + 'px' } : { right: (1920 - px - pw) + 'px', top: (top - 96) + 'px' });
+    board.append(head);
+
+    board.append(benchBox(T, side === 'home' ? px - gap - benchW : px + pw + gap, py, benchW, ph));
+  }
+  board.append(pitch);
+}
+
+function buildOne(kind, T) {
+  const board = $('board');
+  const r = Terrain.ratio(kind, 'half');
+  const cardW = 430, benchW = 320, gap = 40, top = 150, bottom = 50;
+  const [pw, ph] = fit(r, 1920 - cardW - benchW - 2 * gap - 140, 1080 - top - bottom);
+  const total = cardW + gap + pw + gap + benchW;
+  const x0 = (1920 - total) / 2;
+  const px = x0 + cardW + gap;
+  const pitch = pitchBox(kind, 'half', px, top, pw, ph);
+  pitch.style.setProperty('--tok', Math.max(56, Math.min(104, ph * (T.formation.slots.length > 11 ? .09 : .11))) + 'px');
+  const placed = Terrain.place(T.sp, T.formation, T.starters, T.slots).filter(o => !o.slot.bench);
+  const rowOf = rows(placed.map(o => o.slot));
+  placed.forEach((o, k) => pitch.append(token(o, T.club, Terrain.point('half', 'home', o.slot.x, o.slot.y), rowOf(o.slot), k % 4)));
+  board.append(pitch);
+
+  const card = el('div', 'teamcard');
+  teamVars(card, T.club);
+  Object.assign(card.style, { left: x0 + 'px', top: (top + 40) + 'px', width: cardW + 'px' });
+  card.append(crest(T.club));
+  const tn = el('div', 'tn');
+  tn.textContent = T.club.name;
+  card.append(tn);
+  const fo = el('div', 'fo');
+  fo.textContent = T.formation.label;
+  card.append(fo);
+  board.append(card);
+
+  board.append(benchBox(T, px + pw + gap, top, benchW, ph));
+}
+
+function build(E) {
+  const kind = SB.sport(S.sport).pitch || 'foot';
+  const L = { home: SB.lineup(E, C, 'home', S.sport), away: SB.lineup(E, C, 'away', S.sport) };
+  $('board').replaceChildren();
+  SB.letters($('title'), E.title || 'Feuille de match');
+  if (E.layout === 'une') {
+    const T = L[E.focus] || L.home || L.away;
+    if (T && T.formation) buildOne(kind, T);
+  } else if ((L.home && L.home.formation) || (L.away && L.away.formation)) {
+    buildFace(kind, L);
   }
 }
 
-// Une ligne « 10 Léo Martin (C) » devient : numéro 10, nom LÉO MARTIN, badge capitaine.
-// Les lignes existantes sont réutilisées : modifier un nom ne relance pas l'animation des autres.
-function fillList(ul, lines, first) {
-  while (ul.children.length > lines.length) ul.lastElementChild.remove();
-  lines.forEach((line, i) => {
-    let li = ul.children[i];
-    if (!li) {
-      li = document.createElement('li');
-      li.innerHTML = '<span class="n"></span><span class="nm"></span><span class="cap">C</span>';
-      ul.append(li);
-    }
-    li.style.setProperty('--i', first + i);
-    const m = line.match(/^(\d{1,3})\s+(.+)$/);
-    let name = m ? m[2] : line;
-    const captain = /\s*\((c|cap)\)$/i.test(name);
-    name = name.replace(/\s*\((c|cap)\)$/i, '');
-    setText(li.children[0], m ? m[1] : '');
-    setText(li.children[1], name);
-    li.classList.toggle('nonum', !m);
-    li.classList.toggle('captain', captain);
-  });
-}
-
-// Réduit la taille des deux noms jusqu'à ce qu'ils tiennent, en gardant la même taille pour les deux
-function fitNames() {
-  const a = $('homeName'), b = $('awayName');
-  let size = 58;
-  a.style.fontSize = b.style.fontSize = size + 'px';
-  while (size > 26 && (a.scrollWidth > a.clientWidth || b.scrollWidth > b.clientWidth)) {
-    size -= 2;
-    a.style.fontSize = b.style.fontSize = size + 'px';
+function update() {
+  const E = SB.sceneContent(A, 'equipes', live);
+  if (!E || !E.home || !S || !C) return;
+  const key = JSON.stringify([E, C, S.sport]);
+  if (key !== builtKey) { builtKey = key; build(E); }
+  const v = !SB.sport(S.sport).karting && (SB.EDIT ? SB.editVisible('equipes') : !!(A && A[SB.VUE].equipes)) && $('board').children.length > 0;
+  if (v === shown) return;
+  const first = shown === null;
+  shown = v;
+  if (first && !v) return;                       // rien à faire disparaître au chargement
+  const stage = $('stage');
+  clearTimeout(introTimer);
+  stage.classList.remove('intro', 'outro');
+  for (const e of document.querySelectorAll('.headin, .pitchwrap')) SB.replay(e, v ? 'intro' : 'outro');
+  if (v) {
+    SB.replay(stage, 'intro');
+    // ensuite, plus d'animation à chaque modification
+    introTimer = setTimeout(() => document.querySelectorAll('.intro').forEach(e => e.classList.remove('intro')), 4000);
   }
-}
-
-// Réduit la taille des listes jusqu'à ce que tout tienne (même taille des deux côtés)
-function fitBodies() {
-  const bodies = [$('homeBody'), $('awayBody')];
-  let size = 46;
-  const set = () => bodies.forEach(b => b.style.setProperty('--fs', size + 'px'));
-  set();
-  while (size > 14 && bodies.some(b => b.scrollHeight > b.clientHeight + 1)) {
-    size -= 1;
-    set();
-  }
-}
-
-function apply(state) {
-  S = state;
-  const json = JSON.stringify(S);
-  if (json !== lastJson) {             // on ne reconstruit l'écran que si les données ont changé
-    lastJson = json;
-    setText('title', S.title || 'Feuille de match');
-    for (const side of ['home', 'away']) {
-      const t = S[side];
-      $(side).style.setProperty('--c', t.color);
-      $(side + 'Head').style.setProperty('--t', SB.textColor(t.color));
-      setText(side + 'Name', t.name);
-      setLogo($(side + 'Logo'), t.logo);
-      fillList($(side + 'Starters'), t.starters, 0);
-      fillList($(side + 'Subs'), t.subs, t.starters.length + 1);
-      $(side + 'SubsTitle').classList.toggle('hidden', !t.subs.length);
-      setText($(side + 'Coach').lastElementChild, t.coach);
-      $(side + 'Coach').classList.toggle('hidden', !t.coach);
-    }
-    fitNames();
-    fitBodies();
-  }
-  // Entrée / sortie animées
-  requestAnimationFrame(() => $('stage').classList.toggle('on', PREVIEW || S.visible));
+  requestAnimationFrame(() => stage.classList.toggle('on', v));
 }
 
 (async () => {
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => { if (S) { lastJson = ''; apply(S); } });
-  }
-  SB.watch('equipes', apply);
+  await SB.loadSports();
+  SB.watch('equipes', st => { live = st; update(); });
+  SB.watch('clubs', st => { C = st || { clubs: [] }; update(); }, 1000);
+  SB.watch('score', st => { S = SB.fixScore(st || SB.newScore()); update(); }, 1000);
+  SB.watchScene(a => { A = a; update(); });
+  SB.watchLook(() => { builtKey = ''; update(); });
+  SB.onEdit(() => update());
 })();
 </script>
 </body>

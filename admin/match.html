@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../index.html" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard <small>Régie</small></a>
+  <nav class="tabs">
+    <a href="./">Studio</a>
+    <a href="match.html" class="on">Match</a>
+    <a href="clubs.html">Clubs</a>
+    <a href="habillage.html">Habillage</a>
+    <a href="graphiques.html">Graphiques</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap wide">
+  <nav class="subtabs" data-subtabs="match">
+    <button data-sub="equipes">Équipes et compositions</button>
+    <button data-sub="karting" class="hidden">Course (karting)</button>
+    <button data-sub="match">Sport et match</button>
+    <button data-sub="sorties">Sorties OBS</button>
+    <button data-sub="streamdeck">Accès distants</button>
+  </nav>
+
+  <!-- ===== Équipes et compositions ===== -->
+  <div data-subpane="equipes">
+    <p class="hint" style="margin:0 0 12px">Choisis un club de chaque côté. Son nom, ses couleurs, son logo et ses joueurs se règlent dans l'onglet <a href="clubs.html">Clubs</a>.</p>
+    <div class="two teams" id="teams"></div>
+  </div>
+
+  <!-- ===== Karting : live timing Apex ===== -->
+  <div data-subpane="karting" hidden>
+    <div class="grid">
+      <div class="col">
+        <section class="panel">
+          <div class="ph">Live timing Apex <span class="spacer"></span><span class="kstatus" id="kStatus"></span></div>
+          <div class="pb">
+            <div class="lbl">Lien de la page live timing du circuit</div>
+            <div class="row" style="flex-wrap:nowrap">
+              <input type="url" id="kUrl" placeholder="https://www.apex-timing.com/live-timing/karting-espoey/index.html">
+              <button class="btn primary" id="kConnect">Connecter</button>
+            </div>
+            <p class="warn" id="kErr"></p>
+            <div class="kinfo" id="kInfo"></div>
+            <div id="kTrackBox" class="hidden">
+              <div class="lbl">Tracé de la piste (mini map)</div>
+              <select id="kTrack"></select>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="ph">Mode démo <span class="spacer"></span><button class="btn sm" id="kDemo"></button></div>
+          <div class="pb">
+            <p class="hint" style="margin-top:0">Une course simulée, identique sur tous les écrans : pour régler les overlays sans session en direct.</p>
+            <div class="two">
+              <div><div class="lbl">Type</div>
+                <div class="seg seg3"><button class="btn" data-kmode="sprint">Sprint</button><button class="btn" data-kmode="endurance">Endurance</button><button class="btn" data-kmode="loisir">Loisir</button></div></div>
+              <div class="two">
+                <div><div class="lbl">Karts</div><input type="number" id="kKarts" min="4" max="24"></div>
+                <div><div class="lbl">Tours</div><input type="number" id="kLaps" min="3" max="200"></div>
+              </div>
+            </div>
+            <div class="row" style="margin-top:12px"><button class="btn" id="kRestart">↺ Relancer la course (départ dans 5 s)</button></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="ph">Pilotes <span class="spacer"></span><span class="hint" style="margin:0" id="kCount"></span></div>
+        <div class="pb">
+          <p class="hint" style="margin-top:0">Nom affiché par numéro de kart (en location, Apex n'affiche souvent que « KART 12 »). Laisser vide : nom d'Apex.</p>
+          <div id="kNames" class="knames"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===== Sport et match ===== -->
+  <div data-subpane="match" hidden>
+    <div class="grid">
+      <section class="panel">
+        <div class="ph">Sport</div>
+        <div class="pb">
+          <div class="keys" id="sports"></div>
+          <div class="confirm hidden" id="sportConfirm">
+            <p id="sportConfirmText"></p>
+            <div class="row">
+              <button class="btn primary" id="sportYes">Confirmer</button>
+              <button class="btn ghost" id="sportNo">Annuler</button>
+            </div>
+          </div>
+          <details class="rules" data-acc="match.rules" style="margin-top:14px">
+            <summary>Règles et temps réglementaire</summary>
+            <div id="rules" style="margin-top:10px"></div>
+          </details>
+        </div>
+      </section>
+
+      <div class="col">
+        <section class="panel">
+          <div class="ph">Compétition</div>
+          <div class="pb">
+            <div class="lbl">Titre affiché sur les compositions</div>
+            <input type="text" id="title" maxlength="60" placeholder="Ligue 1 · Journée 9">
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="ph">Actions</div>
+          <div class="pb">
+            <div class="row">
+              <button class="btn" id="swap" title="Échange les deux équipes : clubs, scores, compositions">⇄ Inverser les côtés</button>
+              <span id="resetBox"><button class="btn outline-red" id="resetAll">Remettre le match à zéro</button></span>
+            </div>
+            <div class="confirm hidden" id="resetConfirm">
+              <p>Remettre score, sets, chrono et marqueurs à zéro ? Les équipes et les compositions sont conservées.</p>
+              <div class="row">
+                <button class="btn red" id="resetYes">Oui, remettre à zéro</button>
+                <button class="btn ghost" id="resetNo">Annuler</button>
+              </div>
+            </div>
+            <p class="hint">Abréviations, couleurs et position des éléments : onglet <a href="habillage.html">Habillage</a>.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Sorties OBS ===== -->
+  <div data-subpane="sorties" hidden>
+    <section class="panel" style="max-width:900px">
+      <div class="ph">Sorties OBS</div>
+      <div class="pb">
+        <div class="lbl">Programme (tous les overlays)</div>
+        <div class="out"><code id="urlTout"></code><button class="btn sm" data-copy="urlTout">Copier</button></div>
+        <div class="lbl">Aperçu (écran de retour)</div>
+        <div class="out"><code id="urlApercu"></code><button class="btn sm" data-copy="urlApercu">Copier</button></div>
+        <p class="hint">Dans OBS : source « Navigateur », 1920 × 1080.</p>
+        <details class="acc" data-acc="match.params" style="margin-top:10px">
+          <summary>Réglages dans l'adresse</summary>
+          <div class="acc-b"><p class="hint" style="margin:0"><code>?pos=haut-centre</code>, <code>bas-gauche</code>, <code>bas-centre</code> · <code>&amp;taille=1.2</code> · <code>&amp;accent=ff5500</code> · <code>&amp;style=barre</code>. L'onglet Habillage fait la même chose, à la souris.</p></div>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== Stream Deck ===== -->
+  <div data-subpane="streamdeck" hidden>
+    <p class="warn hidden" id="lanWarn"></p>
+    <section class="panel" id="remote-arbitre">
+      <div class="ph">Panneau arbitre <span class="spacer"></span>
+        <button class="btn sm outline-red" data-renew="arbitre" title="L'ancien lien ne marchera plus">Nouveau lien</button>
+      </div>
+      <div class="pb remote">
+        <div class="qr" id="qrArbitre" aria-label="QR code du lien arbitre"></div>
+        <div class="remote-t">
+          <p class="hint" style="margin-top:0">L'arbitre scanne ce QR code avec son téléphone : il peut changer le score, le chrono et la période, sans accès à l'antenne ni au reste de la régie.</p>
+          <div class="out"><code id="urlArbitre"></code><button class="btn sm" data-copy="arbitre">Copier</button></div>
+          <div class="confirm hidden" data-confirm="arbitre" style="margin-top:10px">
+            <p>Créer un nouveau lien ? Le téléphone de l'arbitre devra scanner le nouveau QR code.</p>
+            <div class="row"><button class="btn red" data-yes="arbitre">Oui, nouveau lien</button><button class="btn ghost" data-no="arbitre">Annuler</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel" id="remote-client">
+      <div class="ph">Panneau client <span class="spacer"></span>
+        <button class="btn sm" id="clientOn">Activer le lien</button>
+        <button class="btn sm outline-red" data-renew="client" id="clientRenew" title="L'ancien lien ne marchera plus">Nouveau lien</button>
+        <button class="btn sm ghost" id="clientOff">Désactiver</button>
+      </div>
+      <div class="pb remote">
+        <div class="qr" id="qrClient" aria-label="QR code du lien client"></div>
+        <div class="remote-t">
+          <p class="hint" style="margin-top:0">Envoie ce lien au club ou à l'organisateur : il remplit les fiches des clubs (couleurs, logo, joueurs, photos). Chaque envoi arrive dans l'onglet <a href="clubs.html">Clubs</a>, « À valider » : rien ne change sans ton accord.</p>
+          <div class="out"><code id="urlClient"></code><button class="btn sm" data-copy="client">Copier</button></div>
+          <div class="confirm hidden" data-confirm="client" style="margin-top:10px">
+            <p>Créer un nouveau lien ? L'ancien lien envoyé au client ne marchera plus.</p>
+            <div class="row"><button class="btn red" data-yes="client">Oui, nouveau lien</button><button class="btn ghost" data-no="client">Annuler</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel" id="streamdeck">
+      <div class="ph">Stream Deck <span class="spacer"></span>
+        <button class="btn sm ghost" id="keyShow">Afficher la clé</button>
+        <button class="btn sm outline-red" id="keyNew" title="L'ancienne clé ne marchera plus : il faudra mettre à jour les touches">Nouvelle clé</button>
+      </div>
+      <div class="pb">
+        <details class="acc" data-acc="match.deckhelp">
+          <summary>Comment régler une touche</summary>
+          <div class="acc-b"><p class="hint" style="margin:0">Chaque touche appelle une adresse. Dans <b>Bitfocus Companion</b> : module « Generic HTTP Requests », action « GET », puis colle l'adresse. Avec le logiciel Elgato : un plugin de requêtes web (« Web Requests », « API Ninja »…). Le chrono et le score sont calculés par le serveur : la régie n'a pas besoin d'être ouverte.</p>
+            <p class="hint" style="margin:8px 0 0">Les adresses « Image » (en bas de la liste) donnent une image à afficher <b>sur</b> la touche : le score sur la couleur de l'équipe, ou son logo. Dans Companion : module « Generic HTTP », retour (feedback) « Image from URL », avec un rafraîchissement d'une seconde pour le score. Ajoute <code>&amp;format=texte</code> pour obtenir juste le chiffre.</p></div>
+        </details>
+        <div class="confirm hidden" id="keyConfirm" style="margin:10px 0">
+          <p>Générer une nouvelle clé ? Toutes les touches déjà réglées cesseront de fonctionner.</p>
+          <div class="row"><button class="btn red" id="keyYes">Oui, nouvelle clé</button><button class="btn ghost" id="keyNo">Annuler</button></div>
+        </div>
+        <div id="deck" class="deckurls"></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
+</main>
+
+<template id="teamTpl">
+  <section class="panel team-sheet">
+    <div class="ph" data-f="heading"></div>
+    <div class="pb">
+      <div class="namecolor">
+        <select data-f="club" aria-label="Club"></select>
+        <a class="btn sm ghost" data-f="edit" href="clubs.html">Modifier</a>
+      </div>
+      <p class="warn" data-f="warn"></p>
+      <div class="two" style="margin-top:12px">
+        <div><div class="lbl">Formation</div><select data-f="formation"></select></div>
+        <div><div class="lbl">Titulaires</div><div class="readout" data-f="count" style="font-size:28px">0</div></div>
+      </div>
+
+      <div class="lbl">Sur le terrain</div>
+      <div class="mini-pitch" data-f="pitch"></div>
+      <p class="hint" style="text-align:center">Clique deux joueurs pour les échanger de poste.</p>
+      <div class="row" style="margin-top:8px; justify-content:center">
+        <button class="btn sm ghost" data-f="resetSlots">↺ Placement automatique</button>
+        <button class="btn sm ghost" data-f="autofill" title="Les premiers joueurs de l'effectif en titulaires, les suivants en remplaçants">Remplir depuis l'effectif</button>
+      </div>
+    </div>
+    <details class="acc" data-f="squadBox">
+      <summary>Titulaires et remplaçants <small data-f="squadCount"></small></summary>
+      <div class="acc-b">
+        <p class="hint" style="margin:0 0 6px"><b>T</b> titulaire · <b>R</b> remplaçant · un second clic retire le joueur.</p>
+        <div class="squad" data-f="squad"></div>
+      </div>
+    </details>
+  </section>
+</template>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="../assets/commun.js"></script>
+<script src="../assets/apex.js"></script>
+<script src="../assets/terrain.js"></script>
+<script src="../assets/match.js"></script>
+</body>
+</html>

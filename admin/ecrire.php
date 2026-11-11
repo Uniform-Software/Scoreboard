@@ -15,9 +15,16 @@ if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== 0) {
     echec(415, 'JSON uniquement');
 }
 
-$entree = json_decode(file_get_contents('php://input', false, null, 0, 40000), true);
+// 3 Mo au plus (la bibliothèque des clubs est le plus gros fichier)
+$entree = json_decode(file_get_contents('php://input', false, null, 0, 3000000), true);
 if (!is_array($entree) || !is_int($entree['rev'] ?? null)) {
     echec(400, 'Données invalides');
+}
+
+// Page ouverte avant une mise à jour du site : on refuse ses envois (son code est périmé),
+// elle se recharge et repart de la version actuelle.
+if (($entree['version'] ?? null) !== version_code()) {
+    echec(409, 'Page périmée : rechargement');
 }
 
 $nouveau = ecrire_etat(

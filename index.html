@@ -6,33 +6,43 @@
 <title>Scoreboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/admin.css">
 <style>
   .wrap { max-width: 720px; }
   .links { display: grid; gap: 10px; }
   .links .btn { justify-content: space-between; min-height: 60px; padding: 0 18px; }
   .links .btn small { font: 500 13px var(--sans); letter-spacing: 0; text-transform: none; color: var(--mut); }
-  .links .btn.amber small { color: #4a3400; }
+  .links .btn.primary small { color: inherit; opacity: .75; }
 </style>
 </head>
 <body>
-<header class="top"><div class="brand"><i></i>Scoreboard</div></header>
+<header class="top"><div class="brand" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard</div></header>
 <main class="wrap">
   <section class="panel">
     <div class="ph">Régie (mot de passe)</div>
     <div class="pb links">
-      <a class="btn amber" href="admin/score.html">Score et chrono <small>Contrôle du match</small></a>
-      <a class="btn" href="admin/equipes.html">Compositions <small>Contrôle des équipes</small></a>
+      <a class="btn primary" href="admin/">Studio <small>Aperçu / programme, score, bandeaux</small></a>
+      <a class="btn" href="admin/match.html">Match <small>Sport, clubs du match, compositions, accès distants</small></a>
+      <a class="btn" href="admin/clubs.html">Clubs <small>Couleurs, logos, effectifs, photos</small></a>
+      <a class="btn" href="admin/habillage.html">Habillage <small>Thème, options, positions</small></a>
+      <a class="btn" href="admin/graphiques.html">Graphiques <small>Graphiques personnalisés</small></a>
     </div>
   </section>
   <section class="panel" style="margin-top:14px">
     <div class="ph">Overlays OBS (1920 × 1080)</div>
     <div class="pb links">
+      <a class="btn primary" href="overlay/" target="_blank" rel="noopener">Tout en une source <small>overlay/</small></a>
+      <a class="btn" href="overlay/?vue=apercu" target="_blank" rel="noopener">Aperçu (retour) <small>overlay/?vue=apercu</small></a>
       <a class="btn" href="overlay/score.html" target="_blank" rel="noopener">Scoreboard <small>overlay/score.html</small></a>
       <a class="btn" href="overlay/equipes.html" target="_blank" rel="noopener">Compositions <small>overlay/equipes.html</small></a>
+      <a class="btn" href="overlay/infos.html" target="_blank" rel="noopener">Infos <small>overlay/infos.html</small></a>
+      <a class="btn" href="overlay/graphiques.html" target="_blank" rel="noopener">Graphiques <small>overlay/graphiques.html</small></a>
+      <a class="btn" href="overlay/ecrans.html" target="_blank" rel="noopener">Écrans et transitions <small>overlay/ecrans.html</small></a>
+      <a class="btn" href="overlay/twitch.html" target="_blank" rel="noopener">Twitch <small>overlay/twitch.html</small></a>
     </div>
   </section>
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
 </main>
 </body>
 </html>

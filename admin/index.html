@@ -1,5 +1,504 @@
 <!doctype html>
+<html lang="fr">
+<head>
 <meta charset="utf-8">
-<title>Régie</title>
-<meta http-equiv="refresh" content="0; url=score.html">
-<a href="score.html">Régie · Score</a>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../index.html" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard <small>Régie</small></a>
+  <nav class="tabs">
+    <a href="./" class="on">Studio</a>
+    <a href="match.html">Match</a>
+    <a href="clubs.html">Clubs</a>
+    <a href="habillage.html">Habillage</a>
+    <a href="graphiques.html">Graphiques</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="btn" id="studioBtn" title="Mode studio : préparer à l'aperçu, puis Prendre. Sinon, chaque clic passe directement à l'antenne.">Mode studio</button>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap wide">
+
+  <!-- ===== Moniteurs ===== -->
+  <div class="studio" id="studio">
+    <section class="panel mon pvw">
+      <div class="ph">Aperçu</div>
+      <div class="screen"><iframe src="../overlay/?vue=apercu" scrolling="no" title="Aperçu"></iframe></div>
+    </section>
+    <div class="takecol">
+      <button class="btn primary take" id="take">Prendre <small>Entrée</small></button>
+      <div class="seg">
+        <button class="btn" data-transition="anim">Animée</button>
+        <button class="btn" data-transition="cut">Coupe</button>
+      </div>
+      <p class="note" id="takeNote"></p>
+      <button class="btn sm ghost" id="allOff" title="Retire tout de l'antenne et de l'aperçu (Échap)">Tout masquer</button>
+    </div>
+    <section class="panel mon pgm">
+      <div class="ph">Programme <span class="spacer"></span><span id="pgmMode"></span></div>
+      <div class="screen"><iframe src="../overlay/" scrolling="no" title="Programme"></iframe></div>
+    </section>
+  </div>
+
+  <!-- ===== Barre des éléments : toujours visible en haut de l'écran ===== -->
+  <nav class="elbar" id="elbar" aria-label="Éléments"></nav>
+
+  <!-- ===== Console de score (toujours visible) + réglages de l'élément choisi ===== -->
+  <div class="workspace">
+
+    <!-- Scoreboard : console de match -->
+    <section class="panel el" data-el="score">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Scoreboard</h2><kbd>1</kbd>
+        <span class="spacer"></span>
+        <button class="btn sm ghost" id="undo" title="Annuler la dernière action de score (Ctrl+Z)" disabled>↶ Annuler</button>
+        <button class="btn air" data-toggle="score"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="score"></p>
+        <div class="console">
+          <div class="team" id="homeTeam">
+            <div class="tname"><span class="serve-dot hidden" id="homeServe"></span><span id="homeLabel"></span></div>
+            <div class="readout" id="homeScore">0</div>
+            <div class="row" id="homeBtns"></div>
+            <div id="homeStats"></div>
+            <button class="btn sm wide sinbin-btn" data-sinbin="home"></button>
+          </div>
+
+          <div class="clockcol">
+            <div id="clockPanel" class="clockcol">
+              <div class="clock" id="clockBox">
+                <div class="readout" id="clockBig">00:00</div>
+                <div class="meta"><span id="clockState">Arrêté</span><span id="clockEnd"></span></div>
+              </div>
+              <button class="btn lg wide green" id="toggle">▶ Démarrer</button>
+              <div class="keys" id="periods"></div>
+              <div class="keys4" id="statusKeys">
+                <button class="btn sm" data-status="" title="Afficher le temps de jeu">Temps</button>
+                <button class="btn sm" data-status="ht">Mi-temps</button>
+                <button class="btn sm" data-status="ft">Fin</button>
+                <button class="btn sm" data-status="pause">Pause</button>
+              </div>
+              <div id="shotBox">
+                <div class="stepper">
+                  <div class="readout" id="shotBig">24</div>
+                  <div class="row" id="shotBtns"></div>
+                  <span class="hint" style="margin:0">Horloge des tirs</span>
+                </div>
+              </div>
+              <div id="addedBox">
+                <div class="stepper">
+                  <button class="btn sm" data-added="-1">−</button>
+                  <div class="readout" id="added">—</div>
+                  <button class="btn sm" data-added="1">+</button>
+                  <span class="hint" style="margin:0">Temps additionnel annoncé</span>
+                </div>
+              </div>
+              <details data-acc="studio.time">
+                <summary>Corriger le temps</summary>
+                <div class="adj" style="margin-top:10px">
+                  <button class="btn sm" data-adj="-60">−1 min</button>
+                  <button class="btn sm" data-adj="-10">−10 s</button>
+                  <button class="btn sm" data-adj="-1">−1 s</button>
+                  <button class="btn sm" data-adj="60">+1 min</button>
+                  <button class="btn sm" data-adj="10">+10 s</button>
+                  <button class="btn sm" data-adj="1">+1 s</button>
+                </div>
+                <div class="row" style="margin-top:8px; flex-wrap:nowrap">
+                  <input type="number" id="setMin" min="0" placeholder="min">
+                  <input type="number" id="setSec" min="0" max="59" placeholder="s">
+                  <button class="btn primary" id="applyTime">OK</button>
+                </div>
+                <div class="row" style="margin-top:8px">
+                  <button class="btn sm ghost" id="resetClock">↺ Début de période</button>
+                </div>
+              </details>
+            </div>
+
+            <!-- Volley : service et fin de set -->
+            <div class="volley-only">
+              <div class="lbl">Service</div>
+              <div class="two">
+                <button class="btn" data-serve="home" id="serveHome"></button>
+                <button class="btn" data-serve="away" id="serveAway"></button>
+              </div>
+              <div class="lbl">Fin de set</div>
+              <div class="two">
+                <button class="btn" id="setHome"></button>
+                <button class="btn" id="setAway"></button>
+              </div>
+              <p class="hint" id="setInfo"></p>
+            </div>
+          </div>
+
+          <div class="team" id="awayTeam">
+            <div class="tname"><span class="serve-dot hidden" id="awayServe"></span><span id="awayLabel"></span></div>
+            <div class="readout" id="awayScore">0</div>
+            <div class="row" id="awayBtns"></div>
+            <div id="awayStats"></div>
+            <button class="btn sm wide sinbin-btn" data-sinbin="away"></button>
+          </div>
+        </div>
+
+        <!-- Choix du marqueur / du joueur exclu (apparaît après l'action) -->
+        <div class="picker hidden" id="picker">
+          <div class="row" style="justify-content:space-between">
+            <div class="lbl" id="pickerTitle" style="margin:0"></div>
+            <button class="btn sm ghost" id="pickerSkip">Passer</button>
+          </div>
+          <div class="row" id="pickerList" style="margin-top:10px"></div>
+          <input type="text" id="pickerInput" maxlength="40" placeholder="Autre nom, puis Entrée" style="margin-top:10px">
+        </div>
+
+        <div id="sinbinList" style="margin-top:8px"></div>
+
+        <div class="two" style="margin-top:6px">
+          <details id="scorersBox" data-acc="studio.scorers">
+            <summary>Marqueurs <span id="scorersCount"></span></summary>
+            <div id="scorersList" style="margin-top:8px"></div>
+          </details>
+          <details data-acc="studio.manual">
+            <summary>Saisir un score précis</summary>
+            <div class="two" style="margin-top:10px">
+              <input type="number" id="homeManual" min="0" max="999" inputmode="numeric">
+              <input type="number" id="awayManual" min="0" max="999" inputmode="numeric">
+            </div>
+            <div class="row" style="margin-top:10px"><button class="btn primary" id="applyScore">Appliquer</button></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Karting : console de course (remplace la console de score) -->
+    <section class="panel kconsole" id="kconsole">
+      <div class="elh">
+        <span class="kflag" id="kFlag"></span>
+        <h2 id="kTitle">Course</h2>
+        <span class="kremain num" id="kRemain"></span>
+        <span class="spacer"></span>
+        <span class="kstatus" id="kStatus"></span>
+        <a class="btn sm ghost" href="match.html#karting">Réglages</a>
+      </div>
+      <div class="pb">
+        <p class="warn" id="kWarn"></p>
+        <div class="ktable-wrap">
+          <table class="ktable">
+            <thead><tr><th>Pos.</th><th>Kart</th><th>Pilote</th><th>Dernier</th><th>Meilleur</th><th>Écart</th><th>Tours</th><th title="Suivre (fiche pilote, mini map, classement) · Duel A / B">Suivre · Duel</th></tr></thead>
+            <tbody id="kRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Réglages : un onglet par élément -->
+    <div class="settings" id="settings">
+      <div class="stabs" id="stabs"></div>
+
+    <!-- Bandeau nom -->
+    <section class="panel el pane" data-el="lower">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Bandeau nom</h2><kbd>3</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="lower"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="lower"></p>
+        <select id="playerPick"><option value="">— Choisir un joueur des compositions —</option></select>
+        <div class="lbl">Nom</div>
+        <input type="text" id="lowerTitle" maxlength="40">
+        <div class="lbl">Fonction / détail</div>
+        <input type="text" id="lowerSub" maxlength="60" placeholder="Commentateur, N° 10 · IUT…">
+        <div class="lbl">Couleur</div>
+        <div class="keys3" id="lowerTeam">
+          <button class="btn sm" data-lteam="">Accent</button>
+          <button class="btn sm" data-lteam="home"></button>
+          <button class="btn sm" data-lteam="away"></button>
+        </div>
+        <label class="auto"><input type="checkbox" id="lowerAuto"> Retirer de l'antenne après 8 s</label>
+      </div>
+    </section>
+
+    <!-- Remplacement -->
+    <section class="panel el pane" data-el="sub">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Remplacement</h2><kbd>4</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="sub"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="sub"></p>
+        <div class="two">
+          <button class="btn sm" data-steam="home"></button>
+          <button class="btn sm" data-steam="away"></button>
+        </div>
+        <div class="lbl" style="color:var(--green)">▲ Entre</div>
+        <input type="text" id="subIn" maxlength="40" list="players" placeholder="10 Léo Martin">
+        <div class="lbl" style="color:var(--red)">▼ Sort</div>
+        <input type="text" id="subOut" maxlength="40" list="players" placeholder="7 Hugo Petit">
+        <datalist id="players"></datalist>
+        <label class="auto"><input type="checkbox" id="subAuto"> Retirer de l'antenne après 8 s</label>
+      </div>
+    </section>
+
+    <!-- Compositions -->
+    <section class="panel el pane" data-el="equipes">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Compositions</h2><kbd>2</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="equipes"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="equipes"></p>
+        <div id="lineupSummary" class="note"></div>
+        <div class="lbl">Disposition</div>
+        <div class="two">
+          <button class="btn sm" data-layout="face">Face à face</button>
+          <button class="btn sm" data-layout="une">Une équipe</button>
+        </div>
+        <div id="focusBox">
+          <div class="lbl">Équipe montrée</div>
+          <div class="two">
+            <button class="btn sm" data-focus="home"></button>
+            <button class="btn sm" data-focus="away"></button>
+          </div>
+        </div>
+        <a class="btn sm ghost" href="match.html#equipes" style="margin-top:14px">Clubs, formation et titulaires (onglet Match)</a>
+      </div>
+    </section>
+
+    <!-- Carton central -->
+    <section class="panel el pane" data-el="card">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Carton central</h2><kbd>5</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="card"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="card"></p>
+        <div class="keys3">
+          <button class="btn sm" data-mode="score">Score</button>
+          <button class="btn sm" data-mode="message">Message</button>
+          <button class="btn sm" data-mode="countdown">Rebours</button>
+        </div>
+        <div class="lbl">Titre</div>
+        <input type="text" id="cardTitle" maxlength="40">
+        <div class="row" style="margin-top:8px" id="titlePresets"></div>
+        <div id="cardTextBox">
+          <div class="lbl" id="cardTextLbl">Texte</div>
+          <input type="text" id="cardText" maxlength="120">
+        </div>
+        <div id="cardTimeBox">
+          <div class="lbl">Heure de début</div>
+          <input type="text" id="cardTime" maxlength="5" placeholder="15:00" inputmode="numeric">
+        </div>
+      </div>
+    </section>
+
+    <!-- Bandeau défilant -->
+    <section class="panel el pane" data-el="ticker">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Bandeau défilant</h2><kbd>6</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="ticker"></button>
+      </div>
+      <div class="pb">
+        <p class="warn" data-warn="ticker"></p>
+        <div class="lbl">Étiquette</div>
+        <input type="text" id="tickerLabel" maxlength="20" placeholder="Infos">
+        <div class="lbl">Messages (un par ligne)</div>
+        <textarea id="tickerItems" rows="4" placeholder="Prochain match : STAPS – IUT à 16h"></textarea>
+      </div>
+    </section>
+
+    <!-- Karting -->
+    <section class="panel el pane" data-el="k-tower">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Classement</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-tower"></button>
+      </div>
+      <div class="pb">
+        <div class="lbl">Lignes affichées · <span id="kRowsTxt"></span></div>
+        <input type="range" id="kRowsN" min="3" max="30" step="1">
+        <div class="lbl">Pilotes</div>
+        <div class="keys3"><button class="btn sm" data-knames="code">Codes (MAR)</button><button class="btn sm" data-knames="short">L. MARTIN</button><button class="btn sm" data-knames="full">Nom complet</button></div>
+        <div class="lbl">En course, afficher</div>
+        <div class="two"><button class="btn sm" data-kgap="gap">Écart au premier</button><button class="btn sm" data-kgap="int">Intervalle</button></div>
+        <p class="hint">Le pilote suivi est surligné ; s'il est plus loin que les lignes affichées, il est ajouté en bas. Bandeaux « meilleur tour » et drapeaux automatiques quand le classement ou le bandeau course est à l'antenne.</p>
+      </div>
+    </section>
+
+    <section class="panel el pane" data-el="k-bar">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Bandeau course</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-bar"></button>
+      </div>
+      <div class="pb">
+        <p class="hint" style="margin-top:0">Session, temps ou tours restants, drapeau (vert, jaune, rouge, damier) et meilleur tour, lus en direct depuis Apex.</p>
+      </div>
+    </section>
+
+    <section class="panel el pane" data-el="k-map">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Mini map</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-map"></button>
+      </div>
+      <div class="pb">
+        <p class="hint" style="margin-top:0">Position estimée de chaque kart d'après la durée prévue de son tour, recalée à chaque passage de ligne et de secteur. Tracé : <span id="kMapTrack"></span> (onglet <a href="match.html#karting">Match</a>).</p>
+      </div>
+    </section>
+
+    <section class="panel el pane" data-el="k-driver">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Fiche pilote</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-driver"></button>
+      </div>
+      <div class="pb">
+        <div class="lbl">Pilote suivi</div>
+        <select id="kFocus"></select>
+        <p class="hint">Position, dernier et meilleur tour, écarts avec les karts devant et derrière. Aussi : ★ dans la console de course.</p>
+      </div>
+    </section>
+
+    <section class="panel el pane" data-el="k-duel">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Duel</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-duel"></button>
+      </div>
+      <div class="pb">
+        <div class="two">
+          <div><div class="lbl">Pilote A</div><select id="kDuelA"></select></div>
+          <div><div class="lbl">Pilote B</div><select id="kDuelB"></select></div>
+        </div>
+        <p class="hint">L'écart entre les deux, et s'il se réduit ou grandit. Aussi : boutons A / B dans la console de course.</p>
+      </div>
+    </section>
+
+    <section class="panel el pane" data-el="k-results">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Résultats</h2><span class="spacer"></span>
+        <button class="btn air" data-toggle="k-results"></button>
+      </div>
+      <div class="pb">
+        <p class="hint" style="margin-top:0">Écran plein : podium et classement complet. Titre « Résultats » après le drapeau à damier, « Classement » pendant la course.</p>
+      </div>
+    </section>
+
+    <!-- Écran plein cadre -->
+    <section class="panel el pane" data-el="ecran">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Écran plein</h2><kbd>7</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="ecran"></button>
+      </div>
+      <div class="pb">
+        <div class="keys4" id="screenTypes"></div>
+        <div class="lbl">Titre <small>(vide : titre par défaut)</small></div>
+        <input type="text" id="ecranTitle" maxlength="40">
+        <div class="lbl" id="ecranTextLbl">Texte</div>
+        <input type="text" id="ecranText" maxlength="120">
+        <div id="ecranTimeBox">
+          <div class="lbl" id="ecranTimeLbl">Heure</div>
+          <input type="text" id="ecranTime" maxlength="5" placeholder="15:00" inputmode="numeric">
+        </div>
+        <p class="hint">L'écran recouvre tout l'image : idéal pendant la mi-temps ou avant le direct. Il suit les couleurs, les logos et le score du match.</p>
+      </div>
+    </section>
+
+    <!-- Replay -->
+    <section class="panel el pane" data-el="replay">
+      <div class="elh">
+        <span class="lamps"><span class="lamp-p">Aperçu</span><span class="lamp-l">Programme</span></span>
+        <h2>Replay</h2><kbd>8</kbd><span class="spacer"></span>
+        <button class="btn air" data-toggle="replay"></button>
+      </div>
+      <div class="pb">
+        <div class="lbl">Bandeau</div>
+        <div class="keys3" id="replayLabels">
+          <button class="btn sm" data-rlabel="Replay">Replay</button>
+          <button class="btn sm" data-rlabel="Ralenti">Ralenti</button>
+          <button class="btn sm" data-rlabel="Revoir l'action">Revoir</button>
+        </div>
+        <input type="text" id="replayLabel" maxlength="20" placeholder="Replay" style="margin-top:8px">
+        <label class="auto"><input type="checkbox" id="replayAuto"> Afficher tout seul quand OBS enregistre un replay</label>
+        <div class="row" style="align-items:center; margin-top:6px">
+          <span class="hint" style="margin:0">Pendant</span>
+          <input type="number" id="replaySec" min="3" max="60" style="width:80px">
+          <span class="hint" style="margin:0">secondes</span>
+        </div>
+        <p class="hint">Une transition plein écran se joue à l'entrée et à la sortie du replay. L'affichage automatique utilise le « tampon de relecture » d'OBS.</p>
+      </div>
+    </section>
+
+    <!-- Transitions plein écran -->
+    <section class="panel el pane" data-el="wipe">
+      <div class="elh">
+        <h2>Transitions</h2><span class="spacer"></span>
+        <button class="btn air" id="wipeGo" title="Joue la transition sans changer de scène">▶ Jouer</button>
+      </div>
+      <div class="pb">
+        <div class="lbl">Style</div>
+        <div class="keys3" id="wipeStyles"></div>
+        <div class="lbl">Changer de scène OBS</div>
+        <div class="scenebtns" id="sceneBtns"></div>
+        <details class="acc" data-acc="studio.scenes">
+          <summary>Noms des scènes OBS</summary>
+          <div class="acc-b">
+            <p class="hint" style="margin-top:0">Un nom par ligne, écrit exactement comme dans OBS. Chaque nom devient un bouton : la transition couvre l'écran, OBS change de scène, puis l'image se découvre.</p>
+            <textarea id="sceneNames" rows="4" placeholder="Caméra 1&#10;Caméra 2&#10;Replay"></textarea>
+          </div>
+        </details>
+        <label class="auto"><input type="checkbox" id="wipeObs"> Jouer aussi quand je change de scène dans OBS</label>
+        <details class="acc" data-acc="studio.obshelp">
+          <summary>Réglages dans OBS</summary>
+          <div class="acc-b"><ol class="hint steps">
+            <li>Ajoute la source navigateur <code>overlay/</code> dans <b>chaque scène</b> (clic droit › Copier, puis Coller (référence)), tout en haut de la liste.</li>
+            <li>Dans ses propriétés, <b>Accès de la page</b> : « Accès avancé à OBS » (pour que la régie puisse changer de scène).</li>
+            <li>Transitions de scènes : ajoute un <b>Stinger</b>, fichier <a href="../assets/stinger-vide.webm" download>stinger-vide.webm</a>, point de transition <b>450 ms</b>. La coupure tombe pendant que l'écran est couvert.</li>
+          </ol></div>
+        </details>
+      </div>
+    </section>
+    </div>
+  </div>
+
+  <section class="panel" style="margin-top:14px">
+    <details class="acc" data-acc="studio.help">
+      <summary>Aide et raccourcis clavier</summary>
+      <div class="acc-b">
+        <p class="note" id="modeNote"></p>
+        <div class="shortcuts" style="margin-top:10px">
+          <span><kbd>1</kbd>…<kbd>8</kbd></span><span>Préparer / afficher un élément</span>
+          <span><kbd>Entrée</kbd></span><span>Prendre (l'aperçu passe à l'antenne)</span>
+          <span><kbd>Échap</kbd></span><span>Tout masquer</span>
+          <span><kbd>Espace</kbd></span><span>Démarrer / arrêter le chrono</span>
+          <span><kbd>A</kbd> <kbd>Q</kbd></span><span>+ / − équipe de gauche</span>
+          <span><kbd>P</kbd> <kbd>M</kbd></span><span>+ / − équipe de droite</span>
+          <span><kbd>R</kbd> <kbd>T</kbd></span><span>Horloge des tirs 24 / 14 s (basket)</span>
+          <span><kbd>Ctrl</kbd> <kbd>Z</kbd></span><span>Annuler la dernière action de score</span>
+        </div>
+      </div>
+    </details>
+  </section>
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
+</main>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/apex.js"></script>
+<script src="../assets/studio.js"></script>
+</body>
+</html>

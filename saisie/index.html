@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Saisie des clubs · Scoreboard</title>
+<!--
+  Panneau client : le club (ou l'organisateur) remplit les fiches des clubs — couleurs, logo,
+  joueurs, photos — sans accès à la régie. Chaque envoi part « en attente » : la régie l'accepte
+  ou le refuse dans l'onglet Clubs. S'ouvre avec saisie/?cle=<clé client>.
+-->
+<style>
+  :root {
+    --bg: #f3f4f7; --card: #fff; --line: #dfe2e8; --ink: #14161b; --mut: #5b616e; --dim: #8a909c;
+    --accent: #2448ff; --on: #fff; --red: #d92d20; --green: #12b76a; --amber: #b45309;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { padding: 0 16px max(96px, env(safe-area-inset-bottom)); }
+  main { max-width: 860px; margin: 0 auto; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 10px; padding: 18px 0 8px; }
+  .uni { display: inline-grid; place-items: center; height: 26px; padding: 0 8px; border-radius: 6px; background: var(--ink); color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .06em; }
+  header h1 { font-size: 20px; margin: 0; }
+  .lead { color: var(--mut); line-height: 1.5; margin: 6px 0 18px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-weight: 600; text-decoration: none; }
+  .btn.primary { background: var(--accent); color: var(--on); border-color: var(--accent); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { min-height: 36px; padding: 0 12px; font-size: 14px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 small { font-weight: 500; color: var(--mut); }
+
+  /* Liste des clubs */
+  .clubs { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .club { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); border-left: 6px solid var(--c); }
+  .club .crest, .crest { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #f0f1f4; font-weight: 800; font-size: 14px; }
+  .crest img { width: 80%; height: 80%; object-fit: contain; }
+  .club b { display: block; }
+  .club small { color: var(--mut); font-size: 13px; }
+  .badge { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; background: rgba(245,158,11,.15); color: var(--amber); }
+
+  /* Fiche */
+  .lbl { font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--mut); }
+  input[type=text], input[type=number], select, textarea { width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+  textarea { min-height: 110px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .grid { display: grid; gap: 0 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .grid .lbl { margin-top: 12px; }
+  .colors { display: flex; align-items: center; gap: 10px; }
+  .colors input[type=color] { width: 54px; height: 44px; padding: 2px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+  .logo-row { display: flex; align-items: center; gap: 14px; }
+  .logo-box { flex: none; width: 110px; height: 110px; border-radius: 14px; border: 2px dashed var(--line); display: grid; place-items: center; overflow: hidden; background: #fafbfc; color: var(--dim); font-size: 13px; text-align: center; cursor: pointer; }
+  .logo-box img { width: 86%; height: 86%; object-fit: contain; }
+  .busy { opacity: .5; pointer-events: none; }
+
+  /* Joueurs */
+  .players { display: grid; gap: 8px; }
+  .pl { display: grid; grid-template-columns: 52px 64px 1fr 1fr 150px 44px 36px; gap: 8px; align-items: center; }
+  .pl .ph { width: 52px; height: 52px; border-radius: 10px; border: 1px dashed var(--line); overflow: hidden; display: grid; place-items: center; background: #fafbfc; cursor: pointer; color: var(--dim); font-size: 20px; }
+  .pl .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .pl label.cap { display: grid; place-items: center; height: 44px; border-radius: 10px; border: 1px solid var(--line); font-weight: 800; font-size: 14px; cursor: pointer; }
+  .pl label.cap:has(input:checked) { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pl label.cap input { display: none; }
+  .pl .del { width: 36px; height: 36px; border-radius: 8px; border: 0; background: transparent; color: var(--red); font-size: 18px; }
+  .phead { display: grid; grid-template-columns: 52px 64px 1fr 1fr 150px 44px 36px; gap: 8px; font-size: 12px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+  @media (max-width: 680px) {
+    .phead { display: none; }
+    .pl { grid-template-columns: 52px 64px 1fr 44px 36px; padding: 10px 0; border-top: 1px solid var(--line); }
+    .pl .first { grid-column: 3; }
+    .pl .last { grid-column: 3 / 6; grid-row: 2; }
+    .pl .pos { grid-column: 1 / 6; grid-row: 3; }
+    .pl .num { grid-row: 1; }
+  }
+  details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .hint { color: var(--mut); font-size: 14px; line-height: 1.45; }
+
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); }
+  .bar .in { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .bar .msg { flex: 1; font-size: 14px; color: var(--mut); }
+  .err { color: var(--red); }
+  .ok { color: var(--green); }
+
+  .center { text-align: center; padding: 48px 16px; }
+  .center h2 { font-size: 22px; }
+  .credit { text-align: center; color: var(--dim); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <header><span class="uni">UNI</span><h1>Saisie des clubs</h1></header>
+
+  <div id="bad" class="center hidden">
+    <h2>Lien invalide ou désactivé</h2>
+    <p class="hint">Demande un nouveau lien à l'équipe de diffusion.</p>
+  </div>
+
+  <!-- ===== Liste ===== -->
+  <section id="home" class="hidden">
+    <p class="lead">Choisis ton club pour mettre à jour ses couleurs, son logo et ses joueurs, ou crée-le s'il n'existe pas encore. L'équipe de diffusion vérifie chaque envoi avant de l'utiliser à l'antenne.</p>
+    <div class="card">
+      <h2>Clubs <span style="flex:1"></span><button class="btn sm primary" id="newClub">+ Nouveau club</button></h2>
+      <input type="text" id="search" placeholder="Rechercher un club">
+      <div class="clubs" id="list" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- ===== Fiche ===== -->
+  <section id="edit" class="hidden">
+    <p><button class="btn ghost sm" id="back">‹ Tous les clubs</button></p>
+    <p class="hint hidden" id="pendingNote"></p>
+
+    <div class="card">
+      <h2>Identité</h2>
+      <div class="logo-row">
+        <div class="logo-box" id="logoBox" title="Choisir le logo"><span>Ajouter<br>le logo</span></div>
+        <div class="hint">Logo en PNG (fond transparent de préférence), JPEG ou WebP, 3 Mo au plus.<br><button class="btn sm ghost" id="logoDel" style="margin-top:6px">Retirer le logo</button></div>
+      </div>
+      <div class="grid">
+        <div><div class="lbl">Nom du club *</div><input type="text" id="fName" maxlength="24" placeholder="Paris SG"></div>
+        <div><div class="lbl">Abréviation</div><input type="text" id="fCode" maxlength="4" placeholder="PSG"></div>
+        <div><div class="lbl">Sport</div><select id="fSport"></select></div>
+        <div><div class="lbl">Entraîneur</div><input type="text" id="fCoach" maxlength="40"></div>
+      </div>
+      <div class="grid">
+        <div><div class="lbl">Couleur principale</div><div class="colors"><input type="color" id="fColor"><code id="fColorT"></code></div></div>
+        <div><div class="lbl">Couleur secondaire</div><div class="colors"><input type="color" id="fColor2"><code id="fColor2T"></code></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Joueurs <small id="pCount"></small></h2>
+      <div class="phead"><span>Photo</span><span>N°</span><span>Prénom</span><span>Nom</span><span>Poste</span><span>Cap.</span><span></span></div>
+      <div class="players" id="players"></div>
+      <p style="margin:12px 0 0"><button class="btn" id="addPlayer">+ Ajouter un joueur</button></p>
+      <details style="margin-top:12px">
+        <summary>Coller une liste de joueurs</summary>
+        <p class="hint">Une ligne par joueur : numéro, prénom, nom, et <code>(C)</code> pour le capitaine. Les colonnes copiées depuis Excel marchent aussi. Exemple : <code>10 Léo Martin (C)</code></p>
+        <textarea id="paste"></textarea>
+        <p><button class="btn sm" id="pasteAdd">Ajouter ces joueurs</button></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== Envoyé ===== -->
+  <section id="done" class="center hidden">
+    <h2>Merci, c'est envoyé !</h2>
+    <p class="hint">L'équipe de diffusion va vérifier la fiche. Tu peux encore la modifier tant qu'elle n'est pas validée.</p>
+    <p><button class="btn primary" id="doneBack">Retour aux clubs</button></p>
+  </section>
+
+  <p class="credit">Scoreboard · <b>UNI</b> Uniform Systems</p>
+</main>
+
+<div class="bar hidden" id="bar">
+  <div class="in">
+    <span class="msg" id="msg">Brouillon enregistré sur cet appareil.</span>
+    <button class="btn primary" id="send">Envoyer pour validation</button>
+  </div>
+</div>
+<input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
+
+<script src="../assets/commun.js"></script>
+<script>
+'use strict';
+const $ = SB.$;
+const KEY = SB.params.get('cle') || '';
+const API = `../api/saisie.php?cle=${encodeURIComponent(KEY)}`;
+let DATA = { clubs: [], attente: [] };
+let draft = null;              // fiche en cours de modification
+
+const show = id => ['bad', 'home', 'edit', 'done'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const msg = (text, cls = '') => { $('msg').textContent = text; $('msg').className = 'msg ' + cls; };
+const draftKey = id => 'saisie.draft.' + id;
+
+async function load() {
+  const r = await fetch(API, { cache: 'no-store' });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 403) { show('bad'); return false; }
+  if (!r.ok) throw new Error(j.error || 'Erreur ' + r.status);
+  DATA = j;
+  return true;
+}
+const pendingOf = id => DATA.attente.find(p => p.id === id) || null;
+
+// ---------- Liste ----------
+function crestHtml(c) {
+  return c.logo ? `<img src="${SB.esc(SB.logoUrl(c.logo))}" alt="">` : SB.esc(SB.code(c));
+}
+function renderList() {
+  const q = $('search').value.trim().toLowerCase();
+  // clubs existants, avec leur version en attente si elle existe, puis les nouveaux clubs proposés
+  const all = DATA.clubs.map(c => (pendingOf(c.id) || {}).club || c);
+  for (const p of DATA.attente) if (!DATA.clubs.some(c => c.id === p.id)) all.push(p.club);
+  const list = all.filter(c => !q || (c.name + ' ' + c.code).toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  $('list').replaceChildren(...list.map(c => {
+    const b = document.createElement('button');
+    b.className = 'club';
+    b.style.setProperty('--c', c.color);
+    b.innerHTML = `<span class="crest">${crestHtml(c)}</span><span><b></b><small></small>${pendingOf(c.id) ? '<br><span class="badge">En attente de validation</span>' : ''}</span>`;
+    b.querySelector('b').textContent = c.name || 'Sans nom';
+    b.querySelector('small').textContent = `${SB.sport(c.sport).label} · ${c.players.length} joueur${c.players.length > 1 ? 's' : ''}`;
+    b.onclick = () => open(c.id);
+    return b;
+  }));
+  if (!list.length) $('list').innerHTML = '<p class="hint">Aucun club pour l’instant : crée le tien avec « Nouveau club ».</p>';
+}
+$('search').addEventListener('input', renderList);
+
+// ---------- Fiche ----------
+function open(id) {
+  const base = (pendingOf(id) || {}).club || DATA.clubs.find(c => c.id === id);
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(draftKey(id)) || 'null'); } catch (e) { /* idem */ }
+  draft = SB.clone(saved || base);
+  const p = pendingOf(id);
+  $('pendingNote').textContent = p ? 'Une version de cette fiche attend déjà la validation : tes modifications la remplaceront.' : '';
+  $('pendingNote').classList.toggle('hidden', !p);
+  show('edit');
+  $('bar').classList.remove('hidden');
+  msg(saved ? 'Brouillon repris sur cet appareil.' : 'Les modifications ne partent qu’avec « Envoyer ».');
+  renderSheet(true);
+  scrollTo(0, 0);
+}
+$('newClub').onclick = () => {
+  const id = SB.uid();
+  const sport = Object.keys(SB.sports())[0];
+  draft = { id, name: '', code: '', color: '#2448ff', color2: '#ffffff', logo: '', sport, coach: '', players: [] };
+  $('pendingNote').classList.add('hidden');
+  show('edit');
+  $('bar').classList.remove('hidden');
+  msg('Nouveau club.');
+  renderSheet(true);
+  $('fName').focus();
+};
+function back() {
+  draft = null;
+  $('bar').classList.add('hidden');
+  show('home');
+  renderList();
+}
+$('back').onclick = back;
+$('doneBack').onclick = back;
+
+function saveDraft() {
+  if (!draft) return;
+  try { localStorage.setItem(draftKey(draft.id), JSON.stringify(draft)); } catch (e) { /* idem */ }
+  msg('Brouillon enregistré sur cet appareil. Pense à envoyer.');
+}
+
+function setVal(el, v) { if (document.activeElement !== el && el.value !== String(v)) el.value = v; }
+
+function renderSheet(full) {
+  const c = draft, sp = SB.sport(c.sport);
+  setVal($('fName'), c.name);
+  setVal($('fCode'), c.code);
+  setVal($('fCoach'), c.coach);
+  $('fSport').value = c.sport;
+  $('fColor').value = c.color; $('fColorT').textContent = c.color;
+  $('fColor2').value = c.color2; $('fColor2T').textContent = c.color2;
+  $('logoBox').innerHTML = c.logo ? `<img src="${SB.esc(SB.logoUrl(c.logo))}" alt="Logo">` : '<span>Ajouter<br>le logo</span>';
+  $('logoDel').classList.toggle('hidden', !c.logo);
+  $('pCount').textContent = `· ${c.players.length} joueur${c.players.length > 1 ? 's' : ''}`;
+  if (!full) return;
+  const opts = '<option value="">Poste…</option>' + (sp.positions || []).map(p => `<option value="${p.id}">${SB.esc(p.label)}</option>`).join('');
+  $('players').replaceChildren(...c.players.map(p => {
+    const row = document.createElement('div');
+    row.className = 'pl';
+    row.innerHTML = `<span class="ph" title="Photo">${p.photo ? `<img src="${SB.esc(SB.logoUrl(p.photo))}" alt="">` : '+'}</span>
+      <input class="num" type="text" inputmode="numeric" maxlength="3" placeholder="N°">
+      <input class="first" type="text" maxlength="30" placeholder="Prénom">
+      <input class="last" type="text" maxlength="30" placeholder="Nom">
+      <select class="pos">${opts}</select>
+      <label class="cap" title="Capitaine"><input type="checkbox">C</label>
+      <button class="del" title="Retirer ce joueur" aria-label="Retirer">✕</button>`;
+    const q = s => row.querySelector(s);
+    q('.num').value = p.number; q('.first').value = p.first; q('.last').value = p.last; q('.pos').value = p.pos;
+    q('.cap input').checked = p.captain;
+    q('.num').oninput = e => { p.number = e.target.value.replace(/\D/g, '').slice(0, 3); saveDraft(); };
+    q('.first').oninput = e => { p.first = e.target.value; saveDraft(); };
+    q('.last').oninput = e => { p.last = e.target.value; saveDraft(); };
+    q('.pos').onchange = e => { p.pos = e.target.value; saveDraft(); };
+    q('.cap input').onchange = e => { c.players.forEach(x => { x.captain = false; }); p.captain = e.target.checked; saveDraft(); renderSheet(true); };
+    q('.del').onclick = () => { c.players = c.players.filter(x => x !== p); saveDraft(); renderSheet(true); };
+    q('.ph').onclick = () => pick(q('.ph'), { square: true, max: 400 }, path => { p.photo = path; });
+    return row;
+  }));
+}
+
+// champs de l'identité
+const bindInput = (id, key, fn = v => v) => $(id).addEventListener('input', e => { draft[key] = fn(e.target.value); saveDraft(); renderSheet(false); });
+bindInput('fName', 'name');
+bindInput('fCode', 'code', v => v.toUpperCase());
+bindInput('fCoach', 'coach');
+bindInput('fColor', 'color');
+bindInput('fColor2', 'color2');
+$('fSport').onchange = e => {
+  draft.sport = e.target.value;
+  const ids = (SB.sport(draft.sport).positions || []).map(p => p.id);
+  draft.players.forEach(p => { if (!ids.includes(p.pos)) p.pos = ''; });
+  saveDraft();
+  renderSheet(true);
+};
+
+// images
+let onFile = null;
+function pick(el, opts, apply) {
+  onFile = async f => {
+    if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { msg('Format refusé : PNG, JPEG ou WebP.', 'err'); return; }
+    el.classList.add('busy');
+    try {
+      apply(await SB.upload(f, { ...opts, to: API + '&a=image' }));
+      saveDraft();
+      renderSheet(true);
+    } catch (e) { msg('Image non envoyée : ' + e.message, 'err'); }
+    el.classList.remove('busy');
+  };
+  $('file').click();
+}
+$('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f && onFile) onFile(f); };
+$('logoBox').onclick = () => pick($('logoBox'), { max: 512 }, path => { draft.logo = path; });
+$('logoDel').onclick = () => { draft.logo = ''; saveDraft(); renderSheet(false); };
+
+$('addPlayer').onclick = () => {
+  draft.players.push({ id: SB.uid(), number: '', first: '', last: '', pos: '', photo: '', captain: false });
+  renderSheet(true);
+  const rows = $('players').children;
+  rows[rows.length - 1].querySelector('.num').focus();
+};
+$('pasteAdd').onclick = () => {
+  const sp = SB.sport(draft.sport);
+  const list = $('paste').value.split('\n').map(l => SB.parsePlayer(l, sp)).filter(Boolean);
+  draft.players.push(...list.slice(0, 60 - draft.players.length));
+  $('paste').value = '';
+  saveDraft();
+  renderSheet(true);
+};
+
+// ---------- Envoi ----------
+$('send').onclick = async () => {
+  if (!draft.name.trim()) { msg('Le nom du club est obligatoire.', 'err'); $('fName').focus(); return; }
+  const club = SB.clone(draft);
+  club.players = club.players.filter(p => p.first || p.last || p.number);
+  $('send').disabled = true;
+  msg('Envoi…');
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ club }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403) { show('bad'); return; }
+    if (!r.ok) throw new Error(j.error || 'Erreur ' + r.status);
+    try { localStorage.removeItem(draftKey(club.id)); } catch (e) { /* idem */ }
+    await load();
+    draft = null;
+    $('bar').classList.add('hidden');
+    show('done');
+  } catch (e) {
+    msg('Pas envoyé : ' + e.message, 'err');
+  } finally {
+    $('send').disabled = false;
+  }
+};
+
+(async () => {
+  if (!KEY) return show('bad');
+  await SB.loadSports();
+  $('fSport').innerHTML = Object.entries(SB.sports()).map(([k, s]) => `<option value="${k}">${SB.esc(s.label)}</option>`).join('');
+  try {
+    if (await load()) { show('home'); renderList(); }
+  } catch (e) {
+    show('home');
+    $('list').innerHTML = `<p class="hint err">Serveur injoignable : ${SB.esc(e.message)}</p>`;
+  }
+})();
+</script>
+</body>
+</html>

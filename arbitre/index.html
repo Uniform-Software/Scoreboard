@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0d0f13">
+<meta name="robots" content="noindex">
+<title>Arbitre · Scoreboard</title>
+<!--
+  Panneau arbitre : met à jour le score et le chrono depuis un téléphone, sans passer par la régie.
+  S'ouvre avec le lien de l'onglet Match › Accès distants : arbitre/?cle=<clé arbitre>.
+  Les actions passent par api/action.php ; cette clé ne peut rien changer à l'antenne.
+-->
+<style>
+  :root {
+    --bg: #0d0f13; --card: #171a21; --line: #2a2f3a; --ink: #f4f5f7; --mut: #a3a9b6;
+    --red: #ff4d4f; --green: #2bd46b; --accent: #2448ff;
+    --home: #e63946; --away: #1d6fe0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { min-height: 100dvh; padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)); user-select: none; -webkit-user-select: none; }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .35; }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  header h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: .02em; }
+  header .sp { flex: 1; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--mut); flex: none; }
+  .dot.ok { background: var(--green); }
+  .dot.err { background: var(--red); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .icon { background: var(--card); border: 1px solid var(--line); border-radius: 10px; height: 40px; padding: 0 12px; font-size: 14px; font-weight: 600; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+
+  /* Chrono */
+  .clock { text-align: center; }
+  .clock .period { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .clock .period b { font-size: 17px; }
+  .clock .period button { width: 52px; height: 44px; border-radius: 12px; background: #232733; font-size: 22px; }
+  .time { font-size: clamp(56px, 20vw, 96px); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.05; margin: 8px 0 10px; }
+  .time.paused { color: var(--mut); }
+  .status { font-size: 15px; font-weight: 700; color: #ffd400; min-height: 20px; text-transform: uppercase; letter-spacing: .08em; }
+  .go { width: 100%; height: 64px; border-radius: 14px; font-size: 20px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #04210f; }
+  .go.stop { background: var(--red); color: #fff; }
+  .shot { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  .shot .v { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; color: #ffb000; }
+  .shot button { flex: 1; height: 48px; border-radius: 12px; background: #232733; font-size: 17px; font-weight: 700; }
+
+  /* Équipes */
+  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .team { border-radius: 16px; background: var(--card); border: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; }
+  .team .head { padding: 10px 10px 4px; border-top: 6px solid var(--c); text-align: center; }
+  .team .name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .team .score { font-size: clamp(54px, 18vw, 88px); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; margin: 4px 0; }
+  .team .sets { font-size: 13px; color: var(--mut); min-height: 16px; }
+  .team .btns { display: grid; gap: 8px; padding: 10px; margin-top: auto; }
+  .plus { height: 64px; border-radius: 12px; background: var(--c); color: var(--t); font-size: 22px; font-weight: 800; line-height: 1.05; }
+  .plus small { display: block; font-size: 12px; font-weight: 600; opacity: .85; }
+  .plus.multi { height: 54px; font-size: 19px; }
+  .minus { height: 46px; border-radius: 12px; background: #232733; font-size: 18px; font-weight: 700; }
+  .setw { height: 48px; border-radius: 12px; background: transparent; border: 2px solid var(--c); font-size: 15px; font-weight: 700; }
+
+  .row { display: flex; gap: 8px; }
+  .row button { flex: 1; height: 50px; border-radius: 12px; background: #232733; font-size: 15px; font-weight: 700; }
+  .row button.on { background: #ffd400; color: #1a1500; }
+  .undo { width: 100%; height: 50px; border-radius: 12px; background: transparent; border: 1px solid var(--line); font-size: 15px; font-weight: 700; color: var(--mut); }
+  .last { text-align: center; color: var(--mut); font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+  .msg { text-align: center; padding: 48px 16px; }
+  .msg h2 { font-size: 20px; }
+  .msg p { color: var(--mut); line-height: 1.5; }
+  .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--red); color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); z-index: 9; }
+  .credit { text-align: center; color: #5d6370; font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div id="bad" class="msg hidden">
+  <h2>Lien invalide</h2>
+  <p>Demande à la régie le lien arbitre (onglet Match › Accès distants), ou scanne son QR code.</p>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <span class="dot" id="dot" title="Connexion"></span>
+    <h1 id="sport">Arbitre</h1>
+    <span class="sp"></span>
+    <button class="icon" id="swap" title="Inverser gauche et droite sur ce téléphone">⇄ Côtés</button>
+  </header>
+
+  <section class="card clock" id="clockCard">
+    <div class="period">
+      <button id="pPrev" aria-label="Période précédente">‹</button>
+      <b id="period">—</b>
+      <button id="pNext" aria-label="Période suivante">›</button>
+    </div>
+    <div class="time" id="time">00:00</div>
+    <div class="status" id="status"></div>
+    <button class="go" id="go">DÉMARRER</button>
+    <div class="shot hidden" id="shot">
+      <span class="v" id="shotV">24</span>
+      <button data-shot="24">24 s</button>
+      <button data-shot="14">14 s</button>
+    </div>
+  </section>
+
+  <div class="teams" id="teams"></div>
+
+  <section class="card">
+    <div class="row" id="statusRow">
+      <button data-st="mi-temps">Mi-temps</button>
+      <button data-st="fin">Fin</button>
+      <button data-st="temps">Jeu</button>
+    </div>
+  </section>
+
+  <button class="undo" id="undo" disabled>↶ Annuler la dernière action</button>
+  <div class="last" id="last"></div>
+  <p class="credit">Scoreboard · <b>UNI</b> Uniform Systems</p>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="../assets/commun.js"></script>
+<script>
+'use strict';
+const $ = SB.$;
+const KEY = SB.params.get('cle') || '';
+let S = null, built = '', swapped = false, busy = 0;
+const undo = [];   // actions à rejouer à l'envers : { label, q }
+
+try { swapped = localStorage.getItem('arbitre.swap') === '1'; } catch (e) { /* stockage indisponible */ }
+
+// ---------- Écran allumé pendant le match ----------
+let lock = null;
+async function keepAwake() {
+  try { if (!lock && navigator.wakeLock && document.visibilityState === 'visible') { lock = await navigator.wakeLock.request('screen'); lock.onrelease = () => { lock = null; }; } } catch (e) { /* refusé : tant pis */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('pointerdown', keepAwake, { once: true });
+
+// ---------- Messages ----------
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+function online(ok) { $('dot').className = 'dot ' + (ok ? 'ok' : 'err'); }
+
+// ---------- Actions (api/action.php) ----------
+async function send(q, { label, back } = {}) {
+  if (navigator.vibrate) navigator.vibrate(25);
+  busy++;
+  try {
+    const r = await fetch(`../api/action.php?cle=${encodeURIComponent(KEY)}&${q}`, { cache: 'no-store' });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403) { showBad(); return false; }
+    if (!r.ok) { toast(j.error || 'Erreur ' + r.status); return false; }
+    online(true);
+    if (label) {
+      $('last').textContent = 'Dernière action : ' + label;
+      if (back) { undo.push({ label, q: back }); if (undo.length > 30) undo.shift(); }
+      $('undo').disabled = !undo.length;
+    }
+    return true;
+  } catch (e) {
+    online(false);
+    toast('Pas de connexion au serveur');
+    return false;
+  } finally {
+    busy--;
+    refresh();
+  }
+}
+
+// ---------- Lecture du score ----------
+async function refresh() {
+  try {
+    const j = await SB.read('score');
+    online(true);
+    if (j.state) { S = SB.fixScore(j.state); render(); }
+  } catch (e) { online(false); }
+}
+function poll() { if (!busy) refresh(); setTimeout(poll, 800); }
+
+function showBad() {
+  $('app').classList.add('hidden');
+  $('bad').classList.remove('hidden');
+}
+
+const sideParam = side => side === 'home' ? 'gauche' : 'droite';
+const teamName = side => S[side].name || (side === 'home' ? 'Gauche' : 'Droite');
+
+// ---------- Affichage ----------
+function build() {
+  const sp = SB.sport(S.sport);
+  $('sport').textContent = 'Arbitre · ' + sp.label;
+  const sides = swapped ? ['away', 'home'] : ['home', 'away'];
+  $('teams').replaceChildren(...sides.map(side => {
+    const el = document.createElement('div');
+    el.className = 'team';
+    el.dataset.side = side;
+    const multi = sp.points.length > 1;
+    el.innerHTML = `<div class="head"><div class="name"></div><div class="score">0</div><div class="sets"></div></div><div class="btns"></div>`;
+    const btns = el.querySelector('.btns');
+    sp.points.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.className = 'plus' + (multi ? ' multi' : '');
+      b.innerHTML = `+${p.value}${multi ? `<small>${SB.esc(p.label)}</small>` : ''}`;
+      b.onclick = () => send(`a=point&equipe=${sideParam(side)}&type=${i}`, {
+        label: `${p.label} ${teamName(side)} (+${p.value})`,
+        back: `a=moins&equipe=${sideParam(side)}&v=${p.value}`
+      });
+      btns.append(b);
+    });
+    const m = document.createElement('button');
+    m.className = 'minus';
+    m.textContent = '−1';
+    m.onclick = () => send(`a=moins&equipe=${sideParam(side)}`, { label: `−1 ${teamName(side)}` });
+    btns.append(m);
+    if (sp.sets) {
+      const w = document.createElement('button');
+      w.className = 'setw';
+      w.textContent = 'Set gagné';
+      w.onclick = () => send(`a=set&equipe=${sideParam(side)}`, { label: `Set gagné ${teamName(side)}`, back: `a=set&equipe=${sideParam(side)}&annule=1` });
+      btns.append(w);
+    }
+    return el;
+  }));
+  const clock = !!sp.clock;
+  $('clockCard').classList.toggle('hidden', !clock && !sp.periods.length);
+  $('go').classList.toggle('hidden', !clock);
+  $('time').classList.toggle('hidden', !clock);
+  $('shot').classList.toggle('hidden', !sp.shot);
+  $('statusRow').querySelector('[data-st="mi-temps"]').textContent = sp.periods.length > 2 ? 'Pause' : 'Mi-temps';
+  built = S.sport + (swapped ? '/s' : '');
+}
+
+function render() {
+  if (!S) return;
+  $('app').classList.remove('hidden');
+  if (built !== S.sport + (swapped ? '/s' : '')) build();
+  const sp = SB.sport(S.sport);
+  const vb = SB.volley(S);
+  for (const el of $('teams').children) {
+    const side = el.dataset.side, t = S[side];
+    el.style.setProperty('--c', t.color);
+    el.style.setProperty('--t', SB.textColor(t.color));
+    el.querySelector('.name').textContent = teamName(side);
+    el.querySelector('.score').textContent = t.score;
+    el.querySelector('.sets').textContent = sp.sets ? `Sets : ${t.sets}${S.serve === side ? ' · service' : ''}` : sp.fouls ? `Fautes : ${t.fouls}` : '';
+    const w = el.querySelector('.setw');
+    if (w) w.style.background = vb && vb.setWon === side ? t.color : '';
+  }
+  const p = SB.period(S);
+  $('period').textContent = p ? p.name : (vb ? `Set ${vb.set}` : '—');
+  $('pPrev').disabled = !sp.periods.length || S.period <= 0;
+  $('pNext').disabled = !sp.periods.length || S.period >= sp.periods.length - 1;
+  $('pPrev').classList.toggle('hidden', !sp.periods.length);
+  $('pNext').classList.toggle('hidden', !sp.periods.length);
+  const has = SB.hasClock(S);
+  $('go').disabled = !has;
+  $('go').textContent = S.clock.running ? 'ARRÊTER' : 'DÉMARRER';
+  $('go').classList.toggle('stop', S.clock.running);
+  $('status').textContent = { ht: sp.periods.length > 2 ? 'Pause' : 'Mi-temps', ft: 'Fin du match', pause: 'Pause' }[S.status] || '';
+  for (const b of $('statusRow').children) {
+    const v = { 'mi-temps': 'ht', fin: 'ft', temps: '' }[b.dataset.st];
+    b.classList.toggle('on', S.status === v && v !== '');
+  }
+}
+
+// Chrono : calculé en continu à partir de l'heure du serveur
+(function tick() {
+  if (S && SB.hasClock(S)) {
+    const sp = SB.sport(S.sport);
+    $('time').textContent = SB.fmt(SB.clockMs(S), sp.clock === 'down');
+    $('time').classList.toggle('paused', !S.clock.running);
+    if (sp.shot) $('shotV').textContent = Math.ceil(SB.shotMs(S) / 1000);
+  } else if (S) $('time').textContent = '--:--';
+  requestAnimationFrame(tick);
+})();
+
+// ---------- Boutons ----------
+$('go').onclick = () => send('a=chrono', { label: S && S.clock.running ? 'Chrono arrêté' : 'Chrono démarré' });
+$('pNext').onclick = () => S && send('a=periode&n=suivante', { label: 'Période suivante', back: `a=periode&n=${S.period + 1}` });
+$('pPrev').onclick = () => S && send('a=periode&n=precedente', { label: 'Période précédente', back: `a=periode&n=${S.period + 1}` });
+for (const b of document.querySelectorAll('[data-shot]')) b.onclick = () => send('a=tirs&s=' + b.dataset.shot, { label: `Tirs ${b.dataset.shot} s` });
+for (const b of $('statusRow').children) {
+  b.onclick = () => {
+    const before = { ht: 'mi-temps', ft: 'fin', pause: 'pause' }[S && S.status] || 'temps';
+    send('a=statut&v=' + b.dataset.st, { label: b.textContent, back: 'a=statut&v=' + before });
+  };
+}
+$('undo').onclick = async () => {
+  const u = undo.pop();
+  $('undo').disabled = !undo.length;
+  if (u && await send(u.q)) $('last').textContent = 'Annulé : ' + u.label;
+};
+$('swap').onclick = () => {
+  swapped = !swapped;
+  try { localStorage.setItem('arbitre.swap', swapped ? '1' : '0'); } catch (e) { /* idem */ }
+  render();
+};
+
+(async () => {
+  if (!KEY) return showBad();
+  await SB.loadSports();
+  // vérifie la clé tout de suite (a=etat ne change rien)
+  try {
+    const r = await fetch(`../api/action.php?cle=${encodeURIComponent(KEY)}&a=etat`, { cache: 'no-store' });
+    if (r.status === 403) return showBad();
+  } catch (e) { online(false); }
+  poll();
+})();
+</script>
+</body>
+</html>

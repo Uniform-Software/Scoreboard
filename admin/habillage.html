@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Habillage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../index.html" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard <small>Régie</small></a>
+  <nav class="tabs">
+    <a href="./">Studio</a>
+    <a href="match.html">Match</a>
+    <a href="clubs.html">Clubs</a>
+    <a href="habillage.html" class="on">Habillage</a>
+    <a href="graphiques.html">Graphiques</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap wide">
+  <div class="look">
+
+    <div class="col">
+      <nav class="subtabs compact" data-subtabs="habillage" style="margin:0">
+        <button data-sub="theme">Thème</button>
+        <button data-sub="options">Options</button>
+        <button data-sub="twitch">Twitch</button>
+      </nav>
+      <!-- ===== Thème ===== -->
+      <section class="panel" data-subpane="theme">
+        <div class="pb">
+          <div class="two">
+            <div><div class="lbl">Couleur d'accent</div><div class="namecolor"><input type="color" id="accent"><code id="accentTxt"></code></div></div>
+            <div><div class="lbl">Couleur du terrain</div><div class="namecolor"><input type="color" id="pitch"><code id="pitchTxt"></code></div></div>
+          </div>
+          <div class="lbl">Plaques</div>
+          <div class="seg"><button class="btn" data-plates="light">Claires</button><button class="btn" data-plates="dark">Sombres</button></div>
+          <div class="lbl">Arrondi des coins · <span id="radiusTxt"></span></div>
+          <input type="range" id="radius" min="0" max="24" step="1">
+          <div class="lbl">Police</div>
+          <select id="font"></select>
+          <p class="hint" id="fontDemo" style="font-size:22px;font-weight:800;text-transform:uppercase;margin-top:10px">PSG 2 – 1 OM · 45+2'</p>
+        </div>
+      </section>
+
+      <!-- ===== Options ===== -->
+      <section class="panel" data-subpane="options" hidden>
+        <details class="acc" data-acc="hab.score" open>
+          <summary>Scoreboard</summary>
+          <div class="acc-b">
+            <label class="auto" style="margin-top:0"><input type="checkbox" data-opt="progress"> Barre de progression de la période</label>
+            <label class="auto"><input type="checkbox" data-opt="crests"> Blasons des équipes</label>
+            <label class="auto"><input type="checkbox" id="compact"> Abréviations (PSG – OM)</label>
+          </div>
+        </details>
+        <details class="acc" data-acc="hab.banner" open>
+          <summary>Bandeau d'action</summary>
+          <div class="acc-b">
+            <label class="auto" style="margin-top:0"><input type="checkbox" data-opt="banner"> Afficher « BUT ! », « ESSAI ! »…</label>
+            <label class="auto"><input type="checkbox" data-opt="hatch"> Hachures animées</label>
+            <div class="lbl">Durée · <span id="bannerSecTxt"></span></div>
+            <input type="range" data-opt="bannerSec" min="2" max="15" step="0.5">
+          </div>
+        </details>
+        <details class="acc" data-acc="hab.infos">
+          <summary>Bandeaux et animations</summary>
+          <div class="acc-b">
+            <div class="lbl">Retrait automatique du bandeau nom et du remplacement · <span id="autoHideSecTxt"></span></div>
+            <input type="range" data-opt="autoHideSec" min="3" max="60" step="1">
+            <label class="auto"><input type="checkbox" data-opt="tickerTop"> Bandeau défilant en haut de l'écran</label>
+            <div class="lbl">Vitesse des animations</div>
+            <div class="seg seg3"><button class="btn" data-speed="slow">Lente</button><button class="btn" data-speed="normal">Normale</button><button class="btn" data-speed="fast">Rapide</button></div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ===== Twitch ===== -->
+      <section class="panel" data-subpane="twitch" hidden>
+        <div class="pb">
+          <div class="lbl">Chaîne Twitch</div>
+          <input type="text" id="twChannel" maxlength="25" placeholder="nom de la chaîne (twitch.tv/…)" autocomplete="off" spellcheck="false">
+          <p class="hint">Connexion en lecture seule, sans compte : le tchat, les abonnements, les raids et les bits sont lus directement par les overlays.</p>
+        </div>
+        <details class="acc" data-acc="hab.twchat" open>
+          <summary>Tchat</summary>
+          <div class="acc-b">
+            <div class="lbl" style="margin-top:0">Messages affichés · <span id="twMaxTxt"></span></div>
+            <input type="range" id="twMax" min="2" max="20" step="1">
+            <div class="lbl">Effacement · <span id="twFadeTxt"></span></div>
+            <input type="range" id="twFade" min="0" max="120" step="5">
+            <label class="auto"><input type="checkbox" id="twHideCmd"> Masquer les commandes (messages qui commencent par « ! »)</label>
+            <div class="lbl">Bots à masquer</div>
+            <input type="text" id="twBots" maxlength="300">
+          </div>
+        </details>
+        <details class="acc" data-acc="hab.twalerts" open>
+          <summary>Alertes</summary>
+          <div class="acc-b">
+            <label class="auto" style="margin-top:0"><input type="checkbox" data-twalert="sub"> Abonnements</label>
+            <label class="auto"><input type="checkbox" data-twalert="gift"> Abonnements offerts</label>
+            <label class="auto"><input type="checkbox" data-twalert="raid"> Raids</label>
+            <label class="auto"><input type="checkbox" data-twalert="bits"> Bits, à partir de <input type="number" id="twMinBits" min="1" max="100000" style="width:90px; display:inline-block; min-height:0; padding:2px 6px"> bits</label>
+            <div class="lbl">Tester</div>
+            <div class="row">
+              <button class="btn sm" data-twtest="sub">Abonné</button>
+              <button class="btn sm" data-twtest="gift">Offerts</button>
+              <button class="btn sm" data-twtest="raid">Raid</button>
+              <button class="btn sm" data-twtest="bits">Bits</button>
+              <button class="btn sm" data-twtest="chat">Message</button>
+            </div>
+          </div>
+        </details>
+        <details class="acc" data-acc="hab.twobs">
+          <summary>Sources OBS</summary>
+          <div class="acc-b">
+            <p class="hint" style="margin-top:0">Source navigateur 1920 × 1080 pour chacune (ou une seule avec les deux) :</p>
+            <div class="out"><code id="twUrlChat"></code><button class="btn sm" data-twcopy="tchat">Copier</button></div>
+            <div class="out"><code id="twUrlAlerts"></code><button class="btn sm" data-twcopy="alertes">Copier</button></div>
+            <p class="hint">Dans les graphiques (onglet Graphiques), les champs « Twitch : dernier abonné », « dernier raid », « derniers bits » et « abonnés du jour » se mettent à jour tout seuls.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <!-- ===== Positions et tailles ===== -->
+    <section class="panel">
+      <div class="ph">Positions et tailles <span class="spacer"></span><button class="btn sm ghost" id="resetAll">Tout réinitialiser</button></div>
+      <div class="pb">
+        <div class="stabs" id="elTabs"></div>
+        <div class="screen editor" id="editor">
+          <iframe id="frame" src="../overlay/?vue=apercu&amp;edit&amp;twitch" scrolling="no" title="Éditeur de positions"></iframe>
+          <div class="edit-layer" id="layer">
+            <div class="safe"></div>
+            <i class="guide gx" id="gx"></i><i class="guide gy" id="gy"></i>
+            <div class="ebox" id="box"><span class="handle" id="handle"></span><b id="boxName"></b></div>
+          </div>
+        </div>
+        <p class="hint">Glisse l'élément sur l'écran ; tire le coin pour changer sa taille. Il s'aimante au centre et au cadre de sécurité (pointillés).</p>
+        <div class="row" style="margin-top:10px">
+          <label class="field">Décalage X <input type="number" id="dx" step="1"></label>
+          <label class="field">Décalage Y <input type="number" id="dy" step="1"></label>
+          <label class="field">Taille % <input type="number" id="sz" step="5" min="40" max="250"></label>
+          <button class="btn sm ghost" id="resetEl">Réinitialiser l'élément</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
+</main>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/habillage.js"></script>
+</body>
+</html>

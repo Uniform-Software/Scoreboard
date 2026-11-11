@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Karting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/overlay.css">
+<style>
+  /* Karting : données Apex Timing en direct (assets/apex.js), réglages dans data/karting.json.
+     Habillage « course auto » (inspiré des retransmissions de F1 et d'endurance) : plaques noires,
+     liserés à la couleur du kart, chiffres alignés, violet / vert / jaune réservés aux temps.
+     Six éléments pilotés depuis le Studio : classement (k-tower), chrono de course (k-bar), mini map (k-map),
+     fiche pilote (k-driver), duel (k-duel), résultats (k-results). Rien ne s'affiche hors karting. */
+  :root {
+    --bk: rgba(12, 13, 17, .93); --bk2: rgba(28, 30, 38, .95); --ln: rgba(255, 255, 255, .09);
+    --tx: #ffffff; --tx2: #9aa1ae;
+    --purple: #b14cff; --green: #1fd16b; --yellow: #ffd400; --red: #ff3040; --pit: #59606e;
+  }
+  .el { position: absolute; color: var(--tx); }
+  .num { font-variant-numeric: tabular-nums; }
+  .cap { font-weight: 700; font-stretch: 112%; letter-spacing: .1em; text-transform: uppercase; }
+  .finish-bg { background: repeating-conic-gradient(#0b0b0f 0 25%, #fff 0 50%) 0 0 / 12px 12px; }
+
+  /* entrée / sortie : volet de gauche à droite */
+  .wipe-in { clip-path: inset(0 100% 0 0); transition: clip-path .35s cubic-bezier(.7,0,.3,1); }
+  .on > .wipe-in { clip-path: inset(-20px -400px -20px 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1) var(--d, 0s); }
+
+  /* ================= Chrono de course (en haut à gauche) ================= */
+  .clock { left: 48px; top: 40px; display: flex; align-items: stretch; gap: 6px; }
+  .ck { display: flex; align-items: stretch; background: var(--bk); border-radius: 6px; overflow: hidden; }
+  .ck .band { width: 8px; background: var(--fc, var(--green)); }
+  .ck .band.finish { width: 14px; }
+  .ck .band.yellow, .ck .band.red { animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .ck .body { display: flex; flex-direction: column; justify-content: center; padding: 8px 20px 10px 16px; min-width: 300px; }
+  .ck .top { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--tx2); white-space: nowrap; }
+  .ck .top b { color: var(--tx); }
+  .ck .time { font-size: 40px; font-weight: 800; line-height: 1.05; letter-spacing: .01em; white-space: nowrap; }
+  .ck .prog { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--ln); overflow: hidden; }
+  .ck .prog i { display: block; height: 100%; width: var(--p, 0%); background: var(--accent); transition: width 1s linear; }
+  .fl { display: flex; align-items: center; gap: 12px; padding: 0 18px; background: var(--bk); border-radius: 6px; font-size: 18px; }
+  .fl:not(.has) { display: none; }
+  .fl i { width: 16px; height: 16px; border-radius: 3px; background: var(--fc); }
+  .best { display: flex; align-items: stretch; background: var(--bk); border-radius: 6px; overflow: hidden; white-space: nowrap; }
+  .best:not(.has) { display: none; }
+  .best .ic { display: grid; place-items: center; width: 52px; background: var(--purple); }
+  .best .ic svg { width: 26px; height: 26px; }
+  .best .bb { display: flex; flex-direction: column; justify-content: center; padding: 6px 18px; }
+  .best .bb small { font-size: 12px; color: var(--tx2); }
+  .best .bb div { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; }
+  .best .bb .t { color: var(--purple); }
+  .best .bb div > span:not(.t) { text-transform: uppercase; font-stretch: 87.5%; }
+  .strip { width: 5px; align-self: stretch; background: var(--kc, var(--tx2)); border-radius: 1px; }
+
+  /* ================= Classement ================= */
+  .tower { left: 48px; top: 150px; width: var(--tw, 320px); }
+  .tower.n-short { --tw: 370px; } .tower.n-full { --tw: 440px; }
+  .t-head { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 12px; background: var(--bk2); border-radius: 6px 6px 0 0; font-size: 12px; color: var(--tx2); }
+  .t-head b { color: var(--tx); }
+  .t-rows { position: relative; background: var(--bk); border-radius: 0 0 6px 6px; overflow: hidden; transition: height .4s; }
+  .tower:not(.on) .t-rows { background: transparent; }
+  .row { position: absolute; left: 0; right: 0; height: 36px; display: flex; align-items: center; gap: 10px; padding-right: 12px;
+    border-top: 1px solid var(--ln); transition: top .6s cubic-bezier(.4,0,.2,1), background .3s, color .3s;
+    clip-path: inset(0 100% 0 0); }
+  .tower.on .row { clip-path: inset(0 0 0 0); transition: top .6s cubic-bezier(.4,0,.2,1), background .3s, color .3s, clip-path .45s cubic-bezier(.77,0,.18,1) calc(.15s + var(--i) * .035s); }
+  .row .rp { width: 38px; text-align: center; font-size: 20px; font-weight: 800; }
+  .row .strip { height: 22px; align-self: center; }
+  .row .rn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; font-stretch: 87.5%; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+  .row .rn span { overflow: hidden; text-overflow: ellipsis; }
+  .row .rn em { font-style: normal; font-weight: 600; font-size: 14px; color: var(--tx2); }
+  .row .sw { display: none; width: 18px; height: 18px; flex: none; }
+  .row.fast .sw { display: block; }
+  .row .chg { width: 30px; font-size: 13px; font-weight: 800; text-align: right; opacity: 0; transition: opacity .3s; }
+  .row .chg.up { color: var(--green); opacity: 1; } .row .chg.down { color: var(--red); opacity: 1; }
+  .row .rg { min-width: 84px; text-align: right; font-size: 18px; font-weight: 700; }
+  .row .rg.lead { font-size: 13px; color: var(--tx2); letter-spacing: .08em; text-transform: uppercase; }
+  .row .pit { padding: 2px 7px; border-radius: 4px; background: var(--tx); color: #0b0b0f; font-size: 12px; font-weight: 800; letter-spacing: .06em; }
+  .row.inpit { color: var(--tx2); }
+  .row.inpit .rg { display: none; }
+  .row.focus { background: #fff; color: #0b0b0f; }
+  .row.focus .rn em, .row.focus .rg.lead { color: #5b616e; }
+  .row.flash .rg { animation: purple 2.6s ease-out; }
+  @keyframes purple { 0%, 75% { color: var(--purple); } }
+  .row.sep { border-top: 2px solid var(--tx2); }
+
+  /* ================= Mini map ================= */
+  .map { right: 48px; bottom: 48px; width: 500px; padding: 16px 18px 12px; border-radius: 8px; background: var(--bk);
+    opacity: 0; transform: translateY(24px); transition: opacity .3s, transform .3s; }
+  .map.on { opacity: 1; transform: none; transition: opacity .5s, transform .6s cubic-bezier(.2,.9,.2,1); }
+  .map svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .map .tk-bg { fill: none; stroke: rgba(255,255,255,.16); stroke-linecap: round; stroke-linejoin: round; }
+  .map .tk { fill: none; stroke: #e9ecf2; stroke-linecap: round; stroke-linejoin: round; }
+  .map .tk-pit { fill: none; stroke: var(--pit); stroke-dasharray: 3 5; stroke-linecap: round; }
+  .map .sf { fill: var(--accent); }
+  .map .dot circle.c { stroke: #0b0b0f; }
+  .map .dot text { font-family: var(--font); font-weight: 900; text-anchor: middle; dominant-baseline: central; }
+  .map .dot circle.ring { fill: none; stroke: #fff; }
+  .m-legend { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--tx2); }
+
+  /* ================= Fiche pilote ================= */
+  .card { left: 110px; bottom: 120px; display: flex; align-items: stretch; height: 104px;
+    clip-path: inset(-10px 100% -10px 0); transition: clip-path .35s cubic-bezier(.7,0,.3,1); }
+  .card.on { clip-path: inset(-10px -10px -10px 0); transition: clip-path .7s cubic-bezier(.77,0,.18,1); }
+  .card > * { margin-right: -14px; }
+  .c-pos { display: grid; place-items: center; width: 104px; background: #fff; color: #0b0b0f; font-size: 46px; font-weight: 900; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); border-radius: 6px 0 0 6px; }
+  .c-no { display: grid; place-items: center; min-width: 110px; padding: 0 26px; background: var(--kc, #333); color: var(--kt, #fff); font-size: 48px; font-weight: 900; font-stretch: 87.5%;
+    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+  .c-who { display: flex; flex-direction: column; justify-content: center; padding: 0 44px 0 34px; background: var(--bk); clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); min-width: 380px; }
+  .c-who small { font-size: 14px; color: var(--tx2); white-space: nowrap; }
+  .c-who b { font-size: 46px; font-weight: 800; font-stretch: 80%; text-transform: uppercase; line-height: 1; white-space: nowrap; }
+  .c-stats { display: flex; align-items: stretch; padding-left: 20px; background: var(--bk2); clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); border-radius: 0 6px 6px 0; margin-right: 0 !important; }
+  .c-stats div { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 22px; border-left: 1px solid var(--ln); }
+  .c-stats div:first-child { border-left: 0; }
+  .c-stats small { font-size: 12px; color: var(--tx2); white-space: nowrap; }
+  .c-stats b { font-size: 28px; font-weight: 800; white-space: nowrap; }
+  .c-stats .sec { display: flex; gap: 4px; }
+  .c-stats .sec i { width: 34px; height: 6px; border-radius: 2px; background: var(--tx2); }
+  .t-tb { color: var(--purple); } .t-ti, .t-ib { color: var(--green); }
+  .c-stats .sec i.t-tb { background: var(--purple); } .c-stats .sec i.t-ti, .c-stats .sec i.t-ib { background: var(--green); } .c-stats .sec i.t-tn { background: var(--yellow); }
+
+  /* ================= Duel ================= */
+  .duel { left: 50%; bottom: 48px; transform: translateX(-50%); width: 760px; border-radius: 8px; overflow: hidden; background: var(--bk);
+    clip-path: inset(0 50% 0 50%); transition: clip-path .35s cubic-bezier(.7,0,.3,1); }
+  .duel.on { clip-path: inset(0 0 0 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1); }
+  .d-head { display: flex; justify-content: space-between; align-items: center; height: 36px; padding: 0 16px; background: var(--accent); color: var(--on-accent); font-size: 14px; }
+  .d-body { display: grid; grid-template-columns: 1fr 190px; }
+  .d-row { grid-column: 1; display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 16px 0 0; border-top: 1px solid var(--ln); }
+  .d-row .rp { width: 46px; text-align: center; font-size: 22px; font-weight: 800; }
+  .d-row .strip { height: 26px; }
+  .d-row b { flex: 1; font-size: 24px; font-weight: 800; font-stretch: 85%; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d-row .lt { font-size: 18px; font-weight: 700; color: var(--tx2); }
+  .d-gap { grid-row: 1 / 3; grid-column: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid var(--ln); border-top: 1px solid var(--ln); }
+  .d-gap small { font-size: 12px; color: var(--tx2); }
+  .d-gap b { font-size: 44px; font-weight: 900; line-height: 1.05; }
+  .d-gap i { font-style: normal; font-size: 13px; }
+  .d-gap i.close { color: var(--green); } .d-gap i.open { color: var(--red); }
+
+  /* ================= Résultats ================= */
+  .results { inset: 0; background: #0b0c10; visibility: hidden; }
+  .results.on, .results.leaving { visibility: visible; }
+  .results .slabs { z-index: 40; border-radius: 0; }
+  .results .slabs i:nth-child(3) { background: #0b0c10; }
+  .r-in { position: absolute; inset: 64px 110px; display: flex; flex-direction: column; opacity: 0; transition: opacity .3s; }
+  .results.on .r-in { opacity: 1; transition: opacity .6s .5s; }
+  .r-top { display: flex; align-items: stretch; height: 92px; margin-bottom: 26px; }
+  .r-top .flagbox { width: 92px; border-radius: 6px 0 0 6px; }
+  .r-top .tt { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 26px; background: var(--bk2); }
+  .r-top .tt small { font-size: 15px; color: var(--tx2); }
+  .r-top .tt b { font-size: 46px; font-weight: 900; font-stretch: 80%; text-transform: uppercase; line-height: 1; }
+  .r-top .rb { display: flex; align-items: center; padding: 0 22px; background: var(--bk2); border-left: 1px solid var(--ln); border-radius: 0 6px 6px 0; }
+  .r-top .rb:empty { display: none; }
+  .r-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 36px; align-content: start; }
+  .r-cols.one { grid-template-columns: 1fr; width: 1100px; }
+  .r-head, .r-row { display: grid; grid-template-columns: 54px 5px 58px 1fr 76px 120px 120px; align-items: center; gap: 0 14px; }
+  .r-head { height: 30px; font-size: 12px; color: var(--tx2); padding-right: 14px; }
+  .r-head span:nth-child(n+5) { text-align: right; }
+  .r-row { height: 42px; padding-right: 14px; background: var(--bk); border-top: 1px solid var(--ln); transform: translateX(-30px); opacity: 0; }
+  .results.on .r-row { transform: none; opacity: 1; transition: transform .5s cubic-bezier(.2,.9,.2,1) calc(.6s + var(--i) * .03s), opacity .4s calc(.6s + var(--i) * .03s); }
+  .r-row .rp { height: 100%; display: grid; place-items: center; background: var(--bk2); font-size: 20px; font-weight: 800; }
+  .r-row.p1 .rp { background: #e8b923; color: #0b0b0f; } .r-row.p2 .rp { background: #c9ced6; color: #0b0b0f; } .r-row.p3 .rp { background: #c27b42; color: #0b0b0f; }
+  .r-row .strip { height: 24px; }
+  .r-row .no { font-size: 18px; font-weight: 800; color: var(--tx2); }
+  .r-row .nm { font-size: 22px; font-weight: 800; font-stretch: 85%; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .r-row .nm em { font-style: normal; font-size: 14px; font-weight: 600; color: var(--tx2); margin-left: 8px; }
+  .r-row .v { text-align: right; font-size: 18px; font-weight: 700; }
+
+  /* ================= Bandeaux automatiques ================= */
+  .alert { left: 48px; display: flex; align-items: stretch; height: 64px; border-radius: 6px; overflow: hidden; background: var(--bk);
+    top: calc(150px + var(--th, 0px) + 14px); clip-path: inset(0 100% 0 0); transition: clip-path .35s cubic-bezier(.7,0,.3,1); }
+  .alert.on { clip-path: inset(0 0 0 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1); }
+  .alert .ab { width: 10px; background: var(--ac, var(--purple)); }
+  .alert .ab.finish { width: 64px; }
+  .alert .aw { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 22px; }
+  .alert .aw small { font-size: 12px; color: var(--ac, var(--purple)); }
+  .alert .aw div { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 800; white-space: nowrap; }
+  .alert .aw div b { font-stretch: 85%; text-transform: uppercase; }
+  .alert .aw div .strip { height: 24px; }
+  .alert .aw .t { color: var(--ac); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="sw" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="8" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 13.5V9M9.5 2.5h5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<!-- Chrono de course -->
+<div class="el clock" id="clock">
+  <div class="ck wipe-in"><i class="band" id="cBand"></i><div class="body">
+    <div class="top cap"><b id="cSession"></b><span id="cTrack"></span></div>
+    <div class="time num" id="cTime"></div>
+    <div class="prog"><i id="cProg"></i></div>
+  </div></div>
+  <div class="fl cap wipe-in" id="cFlag" style="--d:.15s"><i></i><span></span></div>
+  <div class="best wipe-in" id="cBest" style="--d:.25s"><span class="ic"><svg><use href="#sw" color="#fff"/></svg></span>
+    <div class="bb"><small class="cap">Meilleur tour</small><div><i class="strip" id="cBestStrip"></i><span id="cBestName"></span><span class="t num" id="cBestTime"></span></div></div></div>
+</div>
+
+<!-- Classement -->
+<div class="el tower" id="tower">
+  <div class="t-head cap wipe-in"><b id="tLap"></b><span id="tMode"></span></div>
+  <div class="t-rows" id="tRows"></div>
+</div>
+
+<!-- Mini map -->
+<div class="el map" id="map">
+  <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg"><g id="mapTrack"></g><g id="mapDots"></g></svg>
+  <div class="m-legend cap"><span id="mTrack"></span><span id="mInfo"></span></div>
+</div>
+
+<!-- Fiche pilote -->
+<div class="el card" id="card">
+  <div class="c-pos num" id="kPos"></div>
+  <div class="c-no num" id="kNo"></div>
+  <div class="c-who"><small class="cap" id="kTeam"></small><b id="kName"></b></div>
+  <div class="c-stats" id="kStats"></div>
+</div>
+
+<!-- Duel -->
+<div class="el duel" id="duel">
+  <div class="d-head cap"><b id="dTitle"></b><span id="dLaps"></span></div>
+  <div class="d-body">
+    <div class="d-row" id="dA"><span class="rp num"></span><i class="strip"></i><b></b><span class="lt num"></span></div>
+    <div class="d-row" id="dB"><span class="rp num"></span><i class="strip"></i><b></b><span class="lt num"></span></div>
+    <div class="d-gap"><small class="cap">Écart</small><b class="num" id="dGap"></b><i class="cap" id="dTrend"></i></div>
+  </div>
+</div>
+
+<!-- Résultats -->
+<div class="el results" id="results">
+  <div class="r-in">
+    <div class="r-top"><i class="flagbox" id="rFlag"></i><div class="tt"><small class="cap" id="rTag"></small><b id="rTitle"></b></div><div class="rb" id="rBest"></div></div>
+    <div class="r-cols" id="rCols"></div>
+  </div>
+  <div class="slabs"><i></i><i></i><i></i></div>
+</div>
+
+<!-- Bandeaux automatiques (meilleur tour, drapeaux) -->
+<div class="el alert" id="alert"><i class="ab" id="aBand"></i><div class="aw"><small class="cap" id="aTag"></small><div><i class="strip" id="aStrip"></i><b id="aName"></b><span class="t num" id="aTime"></span></div></div></div>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/apex.js"></script>
+<script>
+'use strict';
+const { $, setText, esc } = SB;
+SB.applyLook();
+
+let K = null, A = null, S = null, F = null, feedKey = '';
+const FLAGC = { green: 'var(--green)', yellow: 'var(--yellow)', red: 'var(--red)', finish: '#fff', '': 'var(--green)' };
+const FLAGT = { green: 'Drapeau vert', yellow: 'Drapeau jaune', red: 'Drapeau rouge', finish: 'Arrivée' };
+const karting = () => S && SB.sport(S.sport).karting;
+const shown = key => karting() && (SB.EDIT ? SB.editVisible(key) : !!(A && A[SB.VUE][key]));
+
+// Noms : pilote (ou équipe en endurance) en code 3 lettres (MAR), court (L. MARTIN) ou complet
+const plainUp = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const fullName = d => (d.team && d.name !== d.team ? d.team : d.name) || 'Kart ' + d.no;
+const driverOf = d => d.team && d.name !== d.team ? d.name : '';
+function nameOf(d, mode) {
+  const team = d.team && d.name !== d.team;
+  const main = fullName(d);
+  if (/^kart\s*\d+$/i.test(main)) return mode === 'code' ? '#' + d.no : 'Kart ' + d.no;
+  if (mode === 'full') return main;
+  if (mode === 'short') return team ? main : SB.shortName(main);
+  const w = plainUp(main).replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  if (team) return (w.length > 1 ? w.map(x => x[0]).join('') + w[w.length - 1].slice(1) : w[0] || '').slice(0, 3);
+  return (w[w.length - 1] || '').slice(0, 3);
+}
+// Codes uniques : en cas de doublon (MARTIN / MARCHAND), initiale du prénom + 2 lettres du nom (NMA / LMA)
+let CODES = {};
+function makeCodes(list) {
+  CODES = {};
+  const base = Object.fromEntries(list.map(d => [d.id, nameOf(d, 'code')]));
+  const count = {};
+  for (const c of Object.values(base)) count[c] = (count[c] || 0) + 1;
+  const used = new Set();
+  for (const d of list) {
+    let c = base[d.id];
+    if (count[c] > 1 && !/^#/.test(c)) {
+      const w = plainUp(fullName(d)).replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+      if (w.length > 1) c = (w[0][0] + w[w.length - 1].slice(0, 2)).slice(0, 3);
+      let k = 2;
+      while (used.has(c)) c = c.slice(0, 2) + k++;
+    }
+    used.add(c);
+    CODES[d.id] = c;
+  }
+}
+const label = (d, mode) => mode === 'code' && CODES[d.id] ? CODES[d.id] : nameOf(d, mode);
+function color(el, d) { el.style.setProperty('--kc', (d && d.color) || 'var(--tx2)'); el.style.setProperty('--kt', (d && d.colorText) || '#fff'); }
+
+// Connexion (re)créée quand le circuit ou la démo change
+function connect() {
+  const key = K ? JSON.stringify([K.host, K.port, K.demo]) : '';
+  if (key === feedKey) { if (F) F.setNames(K.names); return; }
+  feedKey = key;
+  if (F) F.close();
+  F = null;
+  if (!K || (!K.port && !K.demo.on)) return;
+  F = Apex.feed(K);
+  F.on('change', render);
+  F.on('event', onEvent);
+}
+
+/* ---------------- Chrono de course ---------------- */
+let totalMs = 0;
+function renderClock(s) {
+  setText('cSession', s.title2 || s.title1 || 'Course');
+  setText('cTrack', s.track || (K && K.title) || '');
+  const band = $('cBand');
+  band.className = 'band ' + (s.flag === 'finish' ? 'finish finish-bg' : s.flag);
+  band.style.setProperty('--fc', FLAGC[s.flag] || FLAGC['']);
+  const fl = $('cFlag');
+  fl.classList.toggle('has', s.flag === 'yellow' || s.flag === 'red');
+  fl.querySelector('i').style.setProperty('--fc', FLAGC[s.flag]);
+  fl.querySelector('span').textContent = FLAGT[s.flag] || '';
+  const b = s.best;
+  $('cBest').classList.toggle('has', !!(b && b.driver));
+  if (b && b.driver) { color($('cBestStrip'), b.driver); setText('cBestName', label(b.driver, K.tower.names === 'code' ? 'code' : 'short')); setText('cBestTime', b.text); }
+  $('clock').classList.toggle('on', shown('k-bar') && s.live);
+}
+
+/* ---------------- Classement ---------------- */
+const ROWH = 36;
+const rows = {}, lastPos = {}, change = {};
+function renderTower(s, list) {
+  const n = K.tower.rows, focus = K.focus, mode = K.tower.names;
+  for (const m of ['code', 'short', 'full']) $('tower').classList.toggle('n-' + m, m === mode);
+  setText('tMode', !s.race ? 'Meilleur tour' : K.tower.mode === 'int' ? 'Intervalle' : 'Écart');
+  // N premiers, plus le pilote suivi s'il est plus loin (ligne séparée en bas)
+  const top = list.slice(0, n);
+  const pinned = focus && !top.some(d => d.no === focus) ? list.find(d => d.no === focus) : null;
+  const visible = pinned ? [...top, pinned] : top;
+  const ids = new Set(visible.map(d => d.id));
+  for (const id of Object.keys(rows)) if (!ids.has(id)) { rows[id].remove(); delete rows[id]; }
+  const bestId = s.best && s.best.id, now = Date.now();
+  visible.forEach((d, i) => {
+    let el = rows[d.id];
+    if (!el) {
+      el = rows[d.id] = document.createElement('div');
+      el.className = 'row';
+      el.innerHTML = '<span class="rp num"></span><i class="strip"></i><span class="rn"><span></span><svg class="sw"><use href="#sw" color="#b14cff"/></svg><em></em></span><span class="chg num"></span><span class="pit">PIT</span><span class="rg num"></span>';
+      $('tRows').append(el);
+    }
+    // flèches de gain / perte de places pendant 6 s
+    if (lastPos[d.id] && lastPos[d.id] !== d.pos) change[d.id] = { n: lastPos[d.id] - d.pos, until: now + 6000 };
+    lastPos[d.id] = d.pos;
+    const ch = change[d.id] && change[d.id].until > now ? change[d.id].n : 0;
+    const c = el.querySelector('.chg');
+    c.textContent = ch > 0 ? '▲' + ch : ch < 0 ? '▼' + -ch : '';
+    c.className = 'chg num ' + (ch > 0 ? 'up' : ch < 0 ? 'down' : '');
+    el.style.top = ((d === pinned ? n : i) * ROWH) + 'px';
+    el.style.setProperty('--i', i);
+    el.querySelector('.rp').textContent = d.pos;
+    color(el, d);
+    el.querySelector('.rn > span').textContent = label(d, mode);
+    el.querySelector('.rn em').textContent = s.race && d.pits && mode !== 'full' ? d.pits + ' arr.' : '';
+    el.querySelector('.pit').style.display = d.inPit ? '' : 'none';
+    const g = el.querySelector('.rg');
+    g.textContent = gapText(s, d, i);
+    g.classList.toggle('lead', i === 0 && s.race && s.flag !== 'finish');
+    el.classList.toggle('inpit', d.inPit);
+    el.classList.toggle('focus', d.no === focus);
+    el.classList.toggle('fast', d.id === bestId);
+    el.classList.toggle('sep', d === pinned);
+  });
+  const h = (pinned ? n + 1 : visible.length) * ROWH;
+  $('tRows').style.height = h + 'px';
+  document.documentElement.style.setProperty('--th', (h + 34) + 'px');
+  $('tower').classList.toggle('on', shown('k-tower') && list.length > 0);
+}
+function gapText(s, d, i) {
+  if (!s.race) return i === 0 || !d.gap ? d.best : '+' + d.gap.replace(/^\+/, '');
+  if (i === 0) return s.flag === 'finish' || d.sta === 'sf' ? (d.laps ? d.laps + ' tours' : '') : (K.tower.mode === 'int' ? 'Intervalle' : 'Leader');
+  const v = (K.tower.mode === 'int' ? d.int : d.gap) || '';
+  return /^\d/.test(v) && !/t/i.test(v) ? '+' + v : v.replace(/\s*T\.?$/i, ' T');
+}
+
+/* ---------------- Mini map ---------------- */
+let geom = null, trackKey = '';
+const dots = {};
+function buildMap() {
+  const T = K && K.track && (K.track.paths.track || K.track.paths.s1) ? K.track : Apex.DEMO_TRACK;
+  const key = JSON.stringify(T);
+  if (key === trackKey) return;
+  trackKey = key;
+  const svg = $('mapSvg');
+  const vb = (T.viewbox || '0 0 600 380').split(' ').map(Number);
+  svg.setAttribute('viewBox', `${vb[0] - 20} ${vb[1] - 20} ${vb[2] + 40} ${vb[3] + 40}`);
+  const w = Math.max(vb[2], vb[3]) / 70;
+  const main = T.paths.track || [T.paths.s1, T.paths.s2, T.paths.s3].filter(Boolean).join(' ');
+  $('mapTrack').innerHTML =
+    (T.paths.in ? `<path class="tk-pit" d="${esc(T.paths.in)}" stroke-width="${w * .45}"/>` : '') +
+    (T.paths.out ? `<path class="tk-pit" d="${esc(T.paths.out)}" stroke-width="${w * .45}"/>` : '') +
+    `<path class="tk-bg" d="${esc(main)}" stroke-width="${w * 2.6}"/><path class="tk" id="tkPath" d="${esc(main)}" stroke-width="${w * .7}"/>`;
+  const path = $('tkPath');
+  const len = path.getTotalLength();
+  const L = k => { if (!T.paths[k]) return NaN; const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', T.paths[k]); return p.getTotalLength(); };
+  const l1 = L('s1'), l2 = L('s2');
+  const bounds = Number.isFinite(l1) && Number.isFinite(l2) && T.paths.track ? [l1 / len, (l1 + l2) / len] : [1 / 3, 2 / 3];
+  const p0 = path.getPointAtLength(0), p1 = path.getPointAtLength(Math.min(len, w * 2));
+  const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x) * 180 / Math.PI;
+  $('mapTrack').insertAdjacentHTML('beforeend', `<rect class="sf" x="${p0.x - w * .35}" y="${p0.y - w * 1.6}" width="${w * .7}" height="${w * 3.2}" transform="rotate(${ang} ${p0.x} ${p0.y})"/>`);
+  geom = { path, len, bounds, r: w * 1.25 };
+  $('mapDots').replaceChildren();
+  for (const k of Object.keys(dots)) delete dots[k];
+}
+function tickMap() {
+  if (!F || !geom || !$('map').classList.contains('on')) return;
+  const now = Date.now(), list = F.drivers();
+  const seen = new Set();
+  for (const d of list) {
+    const p = Apex.progress(d, now, geom.bounds);
+    if (p === null) continue;
+    seen.add(d.id);
+    let g = dots[d.id];
+    if (!g) {
+      g = dots[d.id] = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.innerHTML = '<circle class="ring"/><circle class="c"/><text></text>';
+      $('mapDots').append(g);
+    }
+    const pt = geom.path.getPointAtLength(p * geom.len);
+    const focus = d.no === K.focus;
+    g.setAttribute('class', 'dot' + (focus ? ' focus' : ''));
+    g.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
+    const c = g.querySelector('.c'), r = geom.r * (focus ? 1.3 : 1);
+    c.setAttribute('r', r); c.setAttribute('fill', d.color || '#fff'); c.setAttribute('stroke-width', r * .16);
+    const ring = g.querySelector('.ring');
+    ring.setAttribute('r', focus ? r * 1.5 : 0); ring.setAttribute('stroke-width', r * .3);
+    const t = g.querySelector('text');
+    t.textContent = d.no; t.setAttribute('font-size', r * (d.no.length > 2 ? 0.9 : 1.1)); t.setAttribute('fill', d.colorText || '#000');
+    if (focus) $('mapDots').append(g);
+  }
+  for (const id of Object.keys(dots)) if (!seen.has(id)) { dots[id].remove(); delete dots[id]; }
+}
+
+/* ---------------- Fiche pilote ---------------- */
+function renderCard(s, list) {
+  const d = K.focus && list.find(x => x.no === K.focus);
+  if (d) {
+    setText('kPos', 'P' + d.pos);
+    setText('kNo', d.no);
+    color($('card'), d);
+    setText('kName', fullName(d));
+    setText('kTeam', [driverOf(d), s.race && d.laps ? d.laps + ' tours' : '', d.inPit ? 'Aux stands' : ''].filter(Boolean).join(' · ') || (K.title || ''));
+    const i = list.indexOf(d), ahead = list[i - 1], behind = list[i + 1];
+    let html = `<div><small class="cap">Dernier tour</small><b class="num t-${esc(d.lastCls || 'tn')}">${esc(d.last || '—')}</b>${sectors(d)}</div>`;
+    html += `<div><small class="cap">Meilleur</small><b class="num ${d.bestCls === 'tb' || (s.best && s.best.id === d.id) ? 't-tb' : ''}">${esc(d.best || '—')}</b></div>`;
+    if (s.race) {
+      if (ahead) html += `<div><small class="cap">Devant · ${esc(ahead.no)}</small><b class="num">${esc(diff(d, ahead))}</b></div>`;
+      if (behind) html += `<div><small class="cap">Derrière · ${esc(behind.no)}</small><b class="num">${esc(diff(behind, d))}</b></div>`;
+      if (d.pits) html += `<div><small class="cap">Arrêts</small><b class="num">${esc(d.pits)}</b></div>`;
+    } else if (i > 0) html += `<div><small class="cap">Écart</small><b class="num">+${esc((d.gap || '').replace(/^\+/, ''))}</b></div>`;
+    $('kStats').innerHTML = html;
+  }
+  $('card').classList.toggle('on', shown('k-driver') && !!d);
+}
+// Secteurs (si le circuit les publie) : barres violettes / vertes / jaunes
+function sectors(d) {
+  const r = F.model().rows[d.id];
+  const cs = ['s1', 's2', 's3'].map(k => r && r.cells[k]).filter(c => c && c.text);
+  return cs.length ? `<span class="sec">${cs.map(c => `<i class="t-${esc(c.cls)}"></i>`).join('')}</span>` : '';
+}
+function gapSecs(d) {
+  if (!d.gap) return 0;
+  if (/t/i.test(d.gap)) return NaN;
+  const v = parseFloat(d.gap.replace(',', '.').replace('+', ''));
+  return Number.isFinite(v) ? v : NaN;
+}
+function diff(a, b) {
+  const la = +a.laps || 0, lb = +b.laps || 0;
+  if (lb > la) return `${lb - la} tour${lb - la > 1 ? 's' : ''}`;
+  const x = gapSecs(a) - gapSecs(b);
+  return Number.isFinite(x) ? x.toFixed(3) : (a.int || '');
+}
+
+/* ---------------- Duel ---------------- */
+let lastDuel = null;
+function renderDuel(s, list) {
+  const [na, nb] = K.duel;
+  let a = list.find(d => d.no === na), b = list.find(d => d.no === nb);
+  if (a && b && a.pos > b.pos) [a, b] = [b, a];          // a : devant
+  const ok = !!(a && b);
+  if (ok) {
+    setText('dTitle', `Bataille pour P${a.pos}`);
+    setText('dLaps', 'Dernier tour');
+    for (const [el, d] of [[$('dA'), a], [$('dB'), b]]) {
+      el.querySelector('.rp').textContent = d.pos;
+      color(el, d);
+      el.querySelector('b').textContent = fullName(d);
+      el.querySelector('.lt').textContent = d.last || '';
+    }
+    const g = diff(b, a);
+    setText('dGap', g);
+    const v = parseFloat(g), key = a.no + '-' + b.no;
+    if (Number.isFinite(v) && lastDuel && lastDuel.key === key && Math.abs(v - lastDuel.v) > 0.001) {
+      setText('dTrend', v < lastDuel.v ? '▼ se rapproche' : '▲ s’éloigne');
+      $('dTrend').className = 'cap ' + (v < lastDuel.v ? 'close' : 'open');
+    }
+    if (Number.isFinite(v) && (!lastDuel || lastDuel.v !== v || lastDuel.key !== key)) lastDuel = { v, key };
+  }
+  $('duel').classList.toggle('on', shown('k-duel') && ok);
+}
+
+/* ---------------- Résultats ---------------- */
+let resultsOn = false;
+function renderResults(s, list) {
+  const fin = s.flag === 'finish';
+  $('rFlag').className = 'flagbox ' + (fin ? 'finish-bg' : '');
+  $('rFlag').style.background = fin ? '' : 'var(--accent)';
+  setText('rTag', fin ? 'Classement final' : s.race ? 'Classement provisoire' : 'Meilleurs tours');
+  setText('rTitle', [s.title2 || s.title1 || 'Course', s.track].filter(Boolean).join(' · '));
+  $('rBest').innerHTML = s.best && s.best.driver ? `<span class="best has" style="background:transparent"><span class="ic" style="border-radius:6px"><svg><use href="#sw" color="#fff"/></svg></span><span class="bb"><small class="cap">Meilleur tour</small><div><span>${esc(fullName(s.best.driver))}</span><span class="t num">${esc(s.best.text)}</span></div></span></span>` : '';
+  const head = `<div class="r-head cap"><span>Pos.</span><span></span><span>N°</span><span>${list.some(d => d.team && d.team !== d.name) ? 'Équipe' : 'Pilote'}</span><span>Tours</span><span>Meilleur</span><span>Écart</span></div>`;
+  const row = (d, i) => `<div class="r-row p${d.pos}" style="--i:${i};--kc:${esc(d.color || '#9aa1ae')}"><span class="rp num">${d.pos}</span><i class="strip"></i><span class="no num">${esc(d.no)}</span><span class="nm">${esc(fullName(d))}${driverOf(d) ? `<em>${esc(driverOf(d))}</em>` : ''}</span><span class="v num">${esc(d.laps || '')}</span><span class="v num ${s.best && s.best.id === d.id ? 't-tb' : ''}">${esc(d.best || '')}</span><span class="v num">${esc(i === 0 ? '' : gapText(s, d, i))}</span></div>`;
+  const top = list.slice(0, 24), many = top.length > 12, half = Math.ceil(top.length / 2);
+  $('rCols').className = 'r-cols' + (many ? '' : ' one');
+  $('rCols').innerHTML = many
+    ? `<div>${head}${top.slice(0, half).map(row).join('')}</div><div>${head}${top.slice(half).map((d, j) => row(d, j + half)).join('')}</div>`
+    : `<div>${head}${top.map(row).join('')}</div>`;
+  const v = shown('k-results') && list.length > 0;
+  if (v !== resultsOn) {
+    resultsOn = v;
+    const r = $('results');
+    r.classList.remove(v ? 'outro' : 'intro');
+    SB.replay(r, v ? 'intro' : 'outro');
+    if (v) { r.classList.remove('leaving'); r.classList.add('on'); }
+    else { r.classList.add('leaving'); r.classList.remove('on'); setTimeout(() => { if (!resultsOn) r.classList.remove('leaving'); }, 900); }
+  }
+}
+
+/* ---------------- Bandeaux automatiques ---------------- */
+const queue = [];
+let alertBusy = false;
+function onEvent(ev) {
+  if (!F || !karting()) return;
+  if (ev.type === 'best') {
+    const el = rows[ev.id]; if (el) SB.replay(el, 'flash');
+    const d = F.drivers().find(x => x.id === ev.id);
+    if (d) queue.push({ c: 'var(--purple)', tag: 'Meilleur tour', d, time: ev.time });
+  } else if (ev.type === 'flag' && ['yellow', 'red', 'finish'].includes(ev.flag)) {
+    queue.push({ c: FLAGC[ev.flag], finish: ev.flag === 'finish', tag: FLAGT[ev.flag], text: { yellow: 'Prudence sur la piste', red: 'Course arrêtée', finish: 'Drapeau à damier' }[ev.flag] });
+  } else return;
+  nextAlert();
+}
+async function nextAlert() {
+  if (alertBusy || !queue.length) return;
+  if (!shown('k-tower') && !shown('k-bar')) { queue.length = 0; return; }
+  alertBusy = true;
+  const a = queue.shift(), el = $('alert');
+  el.style.setProperty('--ac', a.c);
+  $('aBand').className = 'ab' + (a.finish ? ' finish finish-bg' : '');
+  setText('aTag', a.tag);
+  $('aStrip').style.display = a.d ? '' : 'none';
+  if (a.d) color($('aStrip'), a.d);
+  setText('aName', a.d ? fullName(a.d) : a.text);
+  setText('aTime', a.time || '');
+  // sous le classement s'il est affiché, sinon sous le chrono
+  if (!$('tower').classList.contains('on')) document.documentElement.style.setProperty('--th', '-14px');
+  await SB.sleep(30);
+  el.classList.add('on');
+  await SB.sleep(5000);
+  el.classList.remove('on');
+  await SB.sleep(700);
+  alertBusy = false;
+  nextAlert();
+}
+
+/* ---------------- Rendu ---------------- */
+function render() {
+  if (!K) return;
+  if (!F || !karting()) {
+    for (const id of ['clock', 'tower', 'card', 'duel', 'map']) $(id).classList.remove('on');
+    if (resultsOn) renderResults({ title1: '', title2: '', race: false, best: null, flag: '' }, []);
+    return;
+  }
+  const s = F.session(), list = F.drivers();
+  makeCodes(list);
+  renderClock(s);
+  renderTower(s, list);
+  renderCard(s, list);
+  renderDuel(s, list);
+  renderResults(s, list);
+  buildMap();
+  setText('mTrack', (K.track && K.track.title) || s.track || (K.demo.on ? 'Démo' : ''));
+  setText('mInfo', list.length ? list.length + ' karts' : '');
+  $('map').classList.toggle('on', shown('k-map') && list.length > 0);
+}
+
+// Temps restant (ou tour en cours) et barre de progression
+(function frame() {
+  if (F && karting()) {
+    const s = F.session();
+    const dyn = s.dyn1.kind ? s.dyn1 : s.dyn2;
+    let t = dyn.text, p = 0;
+    if (dyn.kind === 'countdown') {
+      totalMs = Math.max(totalMs, dyn.ms);
+      p = totalMs ? 1 - dyn.ms / totalMs : 0;
+    } else {
+      const m = String(t).match(/(\d+)\s*\/\s*(\d+)/);
+      if (m) p = (+m[1] - 1) / +m[2];
+    }
+    if (s.flag === 'finish') p = 1;
+    if ($('cTime').textContent !== (t || '—')) $('cTime').textContent = t || '—';
+    $('cProg').style.setProperty('--p', Math.round(p * 1000) / 10 + '%');
+    if ($('tLap').textContent !== t) $('tLap').textContent = t;
+    tickMap();
+  }
+  requestAnimationFrame(frame);
+})();
+
+(async () => {
+  await SB.loadSports();
+  SB.watch('karting', st => { K = SB.fixKart(st); totalMs = 0; connect(); render(); }, 1000);
+  SB.watch('score', st => { S = SB.fixScore(st || SB.newScore()); render(); }, 1000);
+  SB.watchScene(a => { A = a; render(); });
+  SB.watchLook(() => render());
+  SB.onEdit(() => render());
+})();
+</script>
+</body>
+</html>

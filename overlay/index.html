@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Tout</title>
+<style>
+  /* Tous les overlays dans une seule source OBS (1920 × 1080, fond transparent).
+     Chaque overlay reste une page à part, superposée ici dans l'ordre : score, compositions, infos, graphiques, puis écrans plein cadre / replay / transitions (au-dessus de tout).
+     Les évènements d'OBS (changement de scène, replay) sont lus par ecrans.html dans cette page.
+     Les paramètres de l'adresse (?vue=apercu, ?pos=, ?taille=, ?accent=) sont transmis à chacun. */
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  iframe { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: transparent; }
+</style>
+</head>
+<body>
+<iframe data-page="score" scrolling="no" title="Scoreboard"></iframe>
+<iframe data-page="equipes" scrolling="no" title="Compositions"></iframe>
+<iframe data-page="infos" scrolling="no" title="Infos"></iframe>
+<iframe data-page="karting" scrolling="no" title="Karting"></iframe>
+<iframe data-page="graphiques" scrolling="no" title="Graphiques"></iframe>
+<iframe data-page="ecrans" scrolling="no" title="Écrans, replay et transitions"></iframe>
+<script>
+// ?twitch : ajoute aussi le tchat et les alertes Twitch (sinon : source à part, overlay/twitch.html)
+if (new URLSearchParams(location.search).has('twitch')) {
+  const t = document.createElement('iframe');
+  t.dataset.page = 'twitch';
+  t.scrolling = 'no';
+  t.title = 'Twitch';
+  document.querySelector('[data-page="ecrans"]').before(t);
+}
+for (const f of document.querySelectorAll('iframe')) f.src = f.dataset.page + '.html' + location.search;
+</script>
+</body>
+</html>

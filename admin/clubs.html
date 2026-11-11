@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Régie · Clubs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../index.html" title="Uniform Systems"><span class="uni">UNI</span>Scoreboard <small>Régie</small></a>
+  <nav class="tabs">
+    <a href="./">Studio</a>
+    <a href="match.html">Match</a>
+    <a href="clubs.html" class="on">Clubs</a>
+    <a href="habillage.html">Habillage</a>
+    <a href="graphiques.html">Graphiques</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="sync" id="sync"><span>Connexion…</span></div>
+</header>
+
+<main class="wrap wide">
+  <!-- ===== Fiches envoyées par le panneau client (saisie/), à valider ===== -->
+  <section class="panel hidden" id="pending">
+    <div class="ph">À valider <span class="count-badge" id="pendingCount"></span><span class="spacer"></span>
+      <a class="btn sm ghost" href="match.html#streamdeck">Lien du panneau client</a>
+    </div>
+    <div class="pb" id="pendingList"></div>
+  </section>
+
+  <div class="clubs">
+
+    <!-- ===== Bibliothèque ===== -->
+    <aside class="panel clublist">
+      <div class="ph">Clubs <span class="spacer"></span><button class="btn sm primary" id="newClub">+ Nouveau club</button></div>
+      <div class="pb">
+        <input type="text" id="search" placeholder="Rechercher un club">
+        <select id="sportFilter" style="margin-top:8px"><option value="">Tous les sports</option></select>
+        <div id="list" style="margin-top:12px"></div>
+      </div>
+    </aside>
+
+    <!-- ===== Fiche du club ===== -->
+    <div class="col" id="sheet">
+      <section class="panel">
+        <div class="ph">Identité <span class="spacer"></span>
+          <button class="btn sm ghost" id="dupClub" title="Copie du club, par exemple pour un autre sport">Dupliquer</button>
+          <button class="btn sm outline-red" id="delClub">Supprimer</button>
+        </div>
+        <div class="pb">
+          <div class="confirm hidden" id="delConfirm" style="margin:0 0 14px">
+            <p id="delText"></p>
+            <div class="row">
+              <button class="btn red" id="delYes">Oui, supprimer</button>
+              <button class="btn ghost" id="delNo">Annuler</button>
+            </div>
+          </div>
+          <div class="identity">
+            <div>
+              <div class="drop logo-drop" id="logoDrop" title="Glisse une image ici, ou clique pour choisir">
+                <img id="logoImg" alt="">
+                <span class="drop-hint">Logo<br><small>glisser ou cliquer</small></span>
+              </div>
+              <div class="logo-tests" title="Le logo sur fond clair et sur fond sombre">
+                <span class="on-light"><img id="logoLight" alt=""></span>
+                <span class="on-dark"><img id="logoDark" alt=""></span>
+              </div>
+              <button class="btn sm ghost wide" id="logoClear" style="margin-top:6px">Retirer le logo</button>
+            </div>
+            <div class="idfields">
+              <div><div class="lbl">Nom</div><input type="text" id="cName" maxlength="24"></div>
+              <div><div class="lbl">Abréviation</div><input type="text" id="cCode" maxlength="4" placeholder="PSG"></div>
+              <div><div class="lbl">Sport</div><select id="cSport"></select></div>
+              <div><div class="lbl">Couleur principale</div><div class="namecolor"><input type="color" id="cColor"><code id="cColorTxt"></code></div></div>
+              <div><div class="lbl">Couleur secondaire</div><div class="namecolor"><input type="color" id="cColor2"><code id="cColor2Txt"></code></div></div>
+              <div><div class="lbl">Entraîneur</div><input type="text" id="cCoach" maxlength="40"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="ph">Effectif <span class="spacer"></span><span id="count" class="hint" style="margin:0"></span></div>
+        <div class="pb">
+          <div class="rtools">
+            <div class="chips" id="posFilter"></div>
+            <input type="text" id="pSearch" placeholder="Chercher un joueur">
+          </div>
+          <div class="roster-head">
+            <span></span><span>Photo</span><span>N°</span><span>Prénom</span><span>Nom</span><span>Poste</span><span title="Capitaine">C</span><span></span>
+          </div>
+          <div id="roster"></div>
+          <p class="hint hidden" id="noMatch">Aucun joueur ne correspond.</p>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="addPlayer">+ Ajouter un joueur</button>
+          </div>
+        </div>
+        <details class="acc" data-acc="clubs.paste">
+          <summary>Coller une liste de joueurs</summary>
+          <div class="acc-b">
+            <p class="hint" style="margin:0 0 8px">Une ligne par joueur : numéro, prénom, nom, puis le poste (facultatif), et <code>(C)</code> pour le capitaine. Les colonnes copiées depuis Excel marchent aussi. Exemple : <code>10 Kylian Mbappé ATT (C)</code></p>
+            <textarea id="paste" rows="6"></textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn primary" id="pasteAdd">Ajouter ces joueurs</button>
+              <label class="auto" style="margin:0"><input type="checkbox" id="pasteReplace"> Remplacer l'effectif</label>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <div class="panel empty hidden" id="empty">
+      <div class="pb">
+        <p>Aucun club pour l'instant.</p>
+        <p class="hint">Crée tes clubs une fois (nom, couleurs, logo, joueurs et photos), puis choisis-les pour chaque match dans l'onglet Match.</p>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+  <p class="credit">Scoreboard · développé par <b>UNI</b> Uniform Systems</p>
+</main>
+
+<script src="../assets/commun.js"></script>
+<script src="../assets/clubs.js"></script>
+</body>
+</html>

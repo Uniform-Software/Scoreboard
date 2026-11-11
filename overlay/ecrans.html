@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Overlay · Écrans et transitions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/overlay.css">
+<style>
+  /* Trois couches, de bas en haut :
+     1. écran plein cadre (avant-match, pause, fin, coupure), opaque ;
+     2. habillage replay (cadre + bandeau « REPLAY ») ;
+     3. transition plein écran (volet, rideau, barres), lancée par la régie, le Stream Deck ou OBS.
+     Les couleurs des équipes viennent du score (--home, --away). */
+
+  /* ================= 1. Écran plein cadre ================= */
+  .screen {
+    position: absolute; inset: 0; overflow: hidden;
+    background: var(--ink); color: var(--paper);
+    visibility: hidden;
+  }
+  .screen.on, .screen.leaving { visibility: visible; }
+  .screen .slabs { z-index: 40; border-radius: 0; }
+  .screen .slabs i:nth-child(3) { background: var(--ink); }
+
+  /* fond : deux grandes bandes aux couleurs des équipes, qui dérivent lentement */
+  .bg { position: absolute; inset: 0; opacity: 0; transition: opacity .4s; }
+  .screen.on .bg { opacity: 1; transition: opacity .6s .3s; }
+  .band { position: absolute; top: -300px; bottom: -300px; width: 560px; transform: skewX(-14deg); }
+  .band.h { left: -360px; background: var(--home); animation: driftL 14s ease-in-out infinite alternate; }
+  .band.a { right: -360px; background: var(--away); animation: driftR 14s ease-in-out infinite alternate; }
+  .band.h::after, .band.a::after { content: ''; position: absolute; top: 0; bottom: 0; width: 60px; background: var(--accent); }
+  .band.h::after { right: -90px; }
+  .band.a::after { left: -90px; }
+  @keyframes driftL { to { transform: skewX(-14deg) translateX(60px); } }
+  @keyframes driftR { to { transform: skewX(-14deg) translateX(-60px); } }
+  .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; color: var(--accent); }
+
+  .content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 46px; padding: 0 360px; }
+  .content > * { opacity: 0; transform: translateY(40px); transition: opacity .3s, transform .3s; }
+  .screen.on .content > * { opacity: 1; transform: none; transition: opacity .5s calc(.55s + var(--k, 0) * .12s), transform .7s cubic-bezier(.2,.9,.2,1) calc(.55s + var(--k, 0) * .12s); }
+
+  .tag { display: inline-flex; align-items: center; gap: 18px; padding: 14px 34px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
+    font-size: 30px; font-weight: 700; font-stretch: 125%; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+  .tag .live { width: 14px; height: 14px; border-radius: 50%; background: var(--on-accent); animation: beat 1.4s ease-in-out infinite; }
+  @keyframes beat { 50% { opacity: .25; } }
+
+  .match { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 56px; width: 1300px; }
+  .side { display: flex; flex-direction: column; align-items: center; gap: 20px; min-width: 0; }
+  .crest { width: 220px; height: 220px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; overflow: hidden; border: 10px solid var(--c); }
+  .crest img { width: 76%; height: 76%; object-fit: contain; }
+  .crest b { font-size: 76px; font-weight: 900; font-stretch: 75%; color: var(--ink); }
+  .screen.on .crest { animation: pop .6s cubic-bezier(.3,1.5,.5,1) .7s both; }
+  .tname { max-width: 100%; min-height: 2em; font-size: 50px; font-weight: 800; font-stretch: 75%; text-transform: uppercase; text-align: center; line-height: 1;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: break-word; }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .nums { display: flex; align-items: center; gap: 30px; font-size: 190px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: .9; }
+  .nums i { font-style: normal; font-size: 110px; color: var(--accent); }
+  .vs { font-size: 120px; font-weight: 900; font-stretch: 75%; color: var(--accent); }
+  .meta { font-size: 22px; font-weight: 700; font-stretch: 125%; letter-spacing: .12em; text-transform: uppercase; opacity: .7; white-space: nowrap; }
+  .meta:empty { display: none; }
+
+  .goals { display: grid; grid-template-columns: 1fr 1fr; gap: 0 120px; width: 1300px; }
+  .goals div { display: flex; flex-direction: column; gap: 6px; font-size: 30px; font-weight: 700; font-stretch: 87.5%; text-transform: uppercase; }
+  .goals div + div { text-align: right; }
+  .goals b { font-weight: 600; opacity: .6; font-stretch: 100%; margin-left: 10px; }
+  .goals:not(.has) { display: none; }
+
+  .count { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .count small { font-size: 26px; font-weight: 700; font-stretch: 125%; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
+  .count b { font-size: 150px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .count:not(.has) { display: none; }
+  .msg { max-width: 1300px; text-align: center; font-size: 44px; font-weight: 700; font-stretch: 87.5%; text-transform: uppercase; line-height: 1.1; }
+  .msg:empty { display: none; }
+
+  /* coupure : un grand message et une barre d'attente */
+  .big { max-width: 1400px; text-align: center; font-size: 120px; font-weight: 900; font-stretch: 75%; text-transform: uppercase; line-height: .95; }
+  .wait { width: 520px; height: 14px; border-radius: 7px; background: rgba(127,127,127,.25); overflow: hidden; }
+  .wait i { display: block; width: 30%; height: 100%; border-radius: 7px; background: var(--accent); animation: wait 1.6s cubic-bezier(.6,0,.4,1) infinite; }
+  @keyframes wait { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .screen:not(.t-coupure) .big, .screen:not(.t-coupure) .wait { display: none; }
+  .screen.t-coupure .match, .screen.t-coupure .goals { display: none; }
+
+  /* ================= 2. Replay ================= */
+  .replay { position: absolute; inset: 0; pointer-events: none; }
+  .frame { position: absolute; inset: 0; border: 12px solid var(--accent); clip-path: inset(50% 50% 50% 50%); transition: clip-path .3s ease; }
+  .replay.on .frame { clip-path: inset(0 0 0 0); transition: clip-path .6s cubic-bezier(.77,0,.18,1) .15s; }
+  .rbadge { position: absolute; left: 64px; top: 56px; display: flex; align-items: stretch; height: 72px; border-radius: var(--r); overflow: hidden;
+    transform: translateX(-140%); transition: transform .35s cubic-bezier(.7,0,.3,1); }
+  .replay.on .rbadge { transform: none; transition: transform .6s cubic-bezier(.2,.9,.2,1) .35s; }
+  .rbadge .rec { display: grid; place-items: center; width: 72px; background: var(--ink); }
+  .rbadge .rec i { width: 22px; height: 22px; border-radius: 50%; background: var(--hot); animation: beat 1s ease-in-out infinite; }
+  .rbadge .rl { display: flex; align-items: center; gap: 18px; padding: 0 30px 0 26px; background: var(--accent); color: var(--on-accent);
+    font-size: 36px; font-weight: 800; font-stretch: 125%; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+  .rbadge .rh { width: 34px; align-self: stretch; margin-right: -30px; color: var(--on-accent); opacity: .35; }
+  .rscore { position: absolute; right: 64px; top: 56px; display: flex; align-items: center; gap: 14px; height: 72px; padding: 0 24px; border-radius: var(--r);
+    background: var(--paper); color: var(--ink); font-size: 34px; font-weight: 800; font-stretch: 75%; text-transform: uppercase; white-space: nowrap;
+    transform: translateX(140%); transition: transform .35s cubic-bezier(.7,0,.3,1); }
+  .replay.on .rscore { transform: none; transition: transform .6s cubic-bezier(.2,.9,.2,1) .45s; }
+  .rscore span { font-variant-numeric: tabular-nums; font-size: 40px; }
+  .rscore i { width: 10px; align-self: stretch; margin: 14px 0; border-radius: 3px; }
+
+  /* ================= 3. Transition ================= */
+  .wipe { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 100; }
+  .wipe > * { position: absolute; }
+  .w-panel { top: -200px; bottom: -200px; left: -10%; width: 120%; transform: translateX(-130%) skewX(-16deg); }
+  .w-half { top: 0; bottom: 0; width: 50%; }
+  .w-half.l { left: 0; transform: translateX(-100%); }
+  .w-half.r { right: 0; transform: translateX(100%); }
+  .w-badge { left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; background: var(--paper);
+    display: flex; align-items: center; justify-content: center; gap: 10px; transform: scale(0); border: 12px solid var(--accent); }
+  .w-badge img { width: 104px; height: 104px; object-fit: contain; }
+  .w-badge b { font-size: 64px; font-weight: 900; font-stretch: 75%; color: var(--accent); }
+  .w-bar { top: 0; bottom: 0; transform: scaleY(0); transform-origin: top; }
+</style>
+</head>
+<body class="no-rate">
+
+<div class="screen" id="screen">
+  <div class="bg"><i class="band h"></i><i class="band a"></i><i class="stripe hatch"></i></div>
+  <div class="content">
+    <div class="tag" style="--k:0"><i class="live"></i><span id="sTitle"></span></div>
+    <div class="big" id="sBig" style="--k:1"></div>
+    <div class="match" style="--k:1">
+      <div class="side" id="sHome"><div class="crest"></div><div class="tname"></div></div>
+      <div class="mid"><div class="nums" id="sNums"><span id="sHomeN"></span><i>–</i><span id="sAwayN"></span></div><div class="vs" id="sVs">VS</div><div class="meta" id="sMeta"></div></div>
+      <div class="side" id="sAway"><div class="crest"></div><div class="tname"></div></div>
+    </div>
+    <div class="goals" id="sGoals" style="--k:2"><div id="sHomeGoals"></div><div id="sAwayGoals"></div></div>
+    <div class="count" id="sCount" style="--k:2"><small id="sCountL"></small><b id="sCountV"></b></div>
+    <div class="msg" id="sText" style="--k:3"></div>
+    <div class="wait" style="--k:3"><i></i></div>
+  </div>
+  <div class="slabs"><i></i><i></i><i></i></div>
+</div>
+
+<div class="replay" id="replay">
+  <div class="frame"></div>
+  <div class="rbadge"><span class="rec"><i></i></span><span class="rl"><span id="rLabel">Replay</span><i class="rh hatch"></i></span></div>
+  <div class="rscore" id="rScore"></div>
+</div>
+
+<div class="wipe" id="wipe"></div>
+
+<script src="../assets/commun.js"></script>
+<script>
+'use strict';
+const { $, setText } = SB;
+SB.applyLook();
+
+let A = null, live = null, I = null, S = null;
+const PROGRAM = SB.VUE === 'program' && !SB.EDIT;
+
+// ---------- OBS (source navigateur) ----------
+// Cette page peut être ouverte seule dans OBS, ou dans overlay/index.html (cadre) : on cherche
+// l'objet obsstudio et les évènements d'OBS dans la fenêtre elle-même et dans la page parente.
+const wins = [window];
+try { if (parent !== window && parent.location.origin === location.origin) wins.push(parent); } catch (e) { /* autre origine */ }
+const OBS = wins.map(w => w.obsstudio).find(Boolean) || null;
+const onObs = (name, fn) => wins.forEach(w => w.addEventListener(name, fn));
+
+/* ======================================================================
+   Transition plein écran
+   Déroulé (1 s) : l'écran est couvert à 450 ms, reste couvert 100 ms, puis se découvre.
+   Avec la vidéo assets/stinger-vide.webm réglée en transition Stinger dans OBS (point de transition
+   450 ms), le changement de caméra tombe pendant que l'écran est couvert.
+   ====================================================================== */
+const COVER = 450, HOLD = 100, REVEAL = 450;
+const EASE_IN = 'cubic-bezier(.7,0,.3,1)', EASE_OUT = 'cubic-bezier(.7,0,.3,1)';
+let wiping = false;
+
+const colors = () => ({
+  home: (S && S.home.color) || '#e63946',
+  away: (S && S.away.color) || '#1d6fe0',
+  accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2448ff',
+  ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#0b0b0f'
+});
+const el = (cls, css) => { const d = document.createElement('div'); d.className = cls; Object.assign(d.style, css || {}); return d; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function anim(node, frames, ms, delay = 0, easing = EASE_IN) {
+  return node.animate(frames, { duration: ms, delay, easing, fill: 'forwards' }).finished;
+}
+
+const STYLES = {
+  // trois panneaux inclinés (équipe 1, accent, équipe 2) qui traversent l'écran
+  volet: {
+    build(c) { return [c.home, c.accent, c.away].map(bg => el('w-panel', { background: bg })); },
+    cover: nodes => Promise.all(nodes.map((n, i) => anim(n, [{ transform: 'translateX(-130%) skewX(-16deg)' }, { transform: 'translateX(0) skewX(-16deg)' }], COVER - i * 60, i * 60))),
+    reveal: nodes => Promise.all(nodes.map((n, i) => anim(n, [{ transform: 'translateX(0) skewX(-16deg)' }, { transform: 'translateX(130%) skewX(-16deg)' }], REVEAL - (2 - i) * 60, (2 - i) * 60, EASE_OUT)))
+  },
+  // deux rideaux aux couleurs des équipes qui se ferment sur les blasons
+  rideau: {
+    build(c) {
+      const badge = el('w-badge');
+      const logo = side => S && S[side].logo ? `<img src="${SB.esc(SB.logoUrl(S[side].logo))}" alt="">` : '';
+      badge.innerHTML = logo('home') && logo('away') ? logo('home') + logo('away') : '<b>' + SB.esc(S ? SB.code(S.home) + ' · ' + SB.code(S.away) : 'UNI') + '</b>';
+      return [el('w-half l', { background: c.home }), el('w-half r', { background: c.away }), badge];
+    },
+    cover: ([l, r, b]) => Promise.all([
+      anim(l, [{ transform: 'translateX(-100%)' }, { transform: 'none' }], COVER),
+      anim(r, [{ transform: 'translateX(100%)' }, { transform: 'none' }], COVER),
+      anim(b, [{ transform: 'scale(0)' }, { transform: 'scale(1.12)', offset: .8 }, { transform: 'scale(1)' }], 300, COVER - 200, 'ease-out')
+    ]),
+    reveal: ([l, r, b]) => Promise.all([
+      anim(b, [{ transform: 'scale(1)' }, { transform: 'scale(0)' }], 200),
+      anim(l, [{ transform: 'none' }, { transform: 'translateX(-100%)' }], REVEAL, 80, EASE_OUT),
+      anim(r, [{ transform: 'none' }, { transform: 'translateX(100%)' }], REVEAL, 80, EASE_OUT)
+    ])
+  },
+  // barres verticales qui tombent en cascade
+  barres: {
+    build(c) {
+      const list = [c.home, c.accent, c.ink, c.away];
+      return Array.from({ length: 8 }, (_, i) => el('w-bar', { left: (i * 12.5) + '%', width: '12.6%', background: list[i % 4] }));
+    },
+    cover: nodes => Promise.all(nodes.map((n, i) => anim(n, [{ transform: 'scaleY(0)', transformOrigin: 'top' }, { transform: 'scaleY(1)', transformOrigin: 'top' }], COVER - 7 * 30, i * 30))),
+    reveal: nodes => Promise.all(nodes.map((n, i) => anim(n, [{ transform: 'scaleY(1)', transformOrigin: 'bottom' }, { transform: 'scaleY(0)', transformOrigin: 'bottom' }], REVEAL - 7 * 30, i * 30, EASE_OUT)))
+  }
+};
+
+// Joue la transition ; onCovered() est appelé quand l'écran est entièrement couvert.
+async function playWipe(style, onCovered) {
+  if (wiping) return;
+  wiping = true;
+  const st = STYLES[style] || STYLES.volet;
+  const nodes = st.build(colors());
+  $('wipe').replaceChildren(...nodes);
+  try {
+    await st.cover(nodes);
+    if (onCovered) onCovered();
+    await wait(HOLD);
+    await st.reveal(nodes);
+  } finally {
+    $('wipe').replaceChildren();
+    wiping = false;
+  }
+}
+
+// Changement de scène OBS demandé par la régie : avec une transition « Coupure » dans OBS, on change
+// quand l'écran est couvert ; avec un Stinger (point de transition calé sur 450 ms), dès le début.
+let selfSwitch = 0;
+function wipeTo(style, scene) {
+  if (!scene || !OBS || !OBS.setCurrentScene) return playWipe(style);
+  const go = () => { selfSwitch = Date.now(); OBS.setCurrentScene(scene); };
+  const run = cut => { if (!cut) go(); playWipe(style, cut ? go : null); };
+  if (OBS.getCurrentTransition) OBS.getCurrentTransition(t => run(/cut|coup/i.test((t && (t.name || t.kind || t.id)) || '')));
+  else run(true);
+}
+
+// OBS change de scène (clic dans OBS, raccourci, Stream Deck OBS…) : la transition se joue aussi
+onObs('obsSceneChanged', () => {
+  if (!PROGRAM || !A || !A.wipeObs || Date.now() - selfSwitch < 2000) return;
+  playWipe(A.wipeStyle);
+});
+
+/* ======================================================================
+   Replay : cadre + bandeau, avec une transition à l'entrée et à la sortie
+   ====================================================================== */
+let replayShown = false, replayUntil = 0;
+function setReplay(v) {
+  if (v === replayShown) return;
+  replayShown = v;
+  const apply = () => $('replay').classList.toggle('on', v);
+  if (PROGRAM && A && !document.documentElement.classList.contains('cut')) playWipe(A.wipeStyle, apply);
+  else apply();
+}
+// OBS vient d'enregistrer un replay (tampon de relecture) : affichage automatique quelques secondes
+onObs('obsReplaybufferSaved', () => {
+  if (!PROGRAM || !I || !I.replay.auto) return;
+  replayUntil = Date.now() + I.replay.sec * 1000;
+  render();
+});
+
+/* ======================================================================
+   Écran plein cadre
+   ====================================================================== */
+const shown = key => SB.EDIT ? SB.editVisible(key) : !!(A && A[SB.VUE][key]);
+
+function crest(box, side) {
+  const t = S[side];
+  box.style.setProperty('--c', t.color);
+  const c = box.querySelector('.crest');
+  const key = t.logo + '|' + SB.code(t);
+  if (c.dataset.key !== key) {
+    c.dataset.key = key;
+    c.innerHTML = t.logo ? `<img src="${SB.esc(SB.logoUrl(t.logo))}" alt="">` : `<b>${SB.esc(SB.code(t))}</b>`;
+  }
+  setText(box.querySelector('.tname'), t.name);
+}
+
+// Temps restant jusqu'à une heure (HH:MM, heure du serveur)
+function until(time) {
+  if (!time) return '';
+  const now = new Date(SB.now());
+  const [h, m] = time.split(':').map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  const s = Math.ceil(Math.max(0, target - now) / 1000);
+  return s >= 3600
+    ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+    : `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function goals(side) {
+  const g = {};
+  for (const x of S.scorers.filter(x => x.team === side && x.player)) {
+    const n = SB.shortName(x.player);
+    (g[n] = g[n] || []).push(x.minute);
+  }
+  return g;
+}
+function fillGoals(box, g) {
+  const key = JSON.stringify(g);
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  box.replaceChildren(...Object.entries(g).map(([n, mins]) => {
+    const s = document.createElement('span');
+    s.textContent = n;
+    const b = document.createElement('b');
+    b.textContent = mins.filter(Boolean).join(', ');
+    s.append(b);
+    return s;
+  }));
+}
+
+let screenOn = false;
+function setScreen(v) {
+  if (v === screenOn) return;
+  screenOn = v;
+  const sc = $('screen');
+  sc.classList.remove(v ? 'outro' : 'intro');
+  SB.replay(sc, v ? 'intro' : 'outro');
+  if (v) { sc.classList.remove('leaving'); sc.classList.add('on'); }
+  else {
+    sc.classList.add('leaving');
+    sc.classList.remove('on');
+    setTimeout(() => { if (!screenOn) sc.classList.remove('leaving'); }, 900);
+  }
+}
+
+function sample(I) {
+  I = SB.fixInfos(SB.clone(I || { lower: {}, sub: {}, card: {}, ticker: {} }));
+  if (!I.replay.label) I.replay.label = 'Replay';
+  return I;
+}
+
+function render() {
+  I = SB.fixInfos(SB.sceneContent(A, 'infos', live));
+  if (SB.EDIT) I = sample(I);
+  if (!I || !S || (!A && !SB.EDIT)) return;
+  const sp = SB.sport(S.sport), ec = I.ecran;
+  const type = SB.SCREENS.find(x => x.key === ec.type) || SB.SCREENS[0];
+  const root = document.documentElement.style;
+  root.setProperty('--home', S.home.color);
+  root.setProperty('--away', S.away.color);
+
+  const sc = $('screen');
+  for (const t of SB.SCREENS) sc.classList.toggle('t-' + t.key, t.key === type.key);
+  const title = ec.title || (type.key === 'pause' && sp.periods.length > 2 ? 'Pause' : type.key === 'coupure' ? 'Interruption' : type.title);
+  setText('sTitle', title);
+  setText('sBig', type.key === 'coupure' ? (ec.text || 'Nous revenons dans un instant') : '');
+  crest($('sHome'), 'home');
+  crest($('sAway'), 'away');
+  const withScore = type.key === 'pause' || type.key === 'fin';
+  $('sNums').classList.toggle('hidden', !withScore);
+  $('sVs').classList.toggle('hidden', withScore);
+  setText('sHomeN', sp.sets ? S.home.sets : S.home.score);
+  setText('sAwayN', sp.sets ? S.away.sets : S.away.score);
+  setText('sMeta', !withScore ? sp.label
+    : sp.sets ? (S.history.length ? 'Sets : ' + S.history.map(x => x.join('-')).join('  ·  ') : sp.label)
+    : [sp.label, type.key === 'pause' && SB.period(S) ? SB.period(S).name : ''].filter(Boolean).join('  ·  '));
+  const gh = goals('home'), ga = goals('away');
+  fillGoals($('sHomeGoals'), gh);
+  fillGoals($('sAwayGoals'), ga);
+  $('sGoals').classList.toggle('has', withScore && (Object.keys(gh).length + Object.keys(ga).length) > 0);
+  setText('sCountL', type.key === 'avant' ? 'Début du match dans' : 'Reprise dans');
+  $('sCount').classList.toggle('has', (type.key === 'avant' || type.key === 'pause') && !!ec.time);
+  setText('sText', type.key === 'coupure' ? '' : ec.text);
+  setScreen(shown('ecran'));
+
+  // Replay
+  setText('rLabel', I.replay.label || 'Replay');
+  const rs = $('rScore');
+  const key = [S.home.color, S.away.color, SB.code(S.home), SB.code(S.away), S.home.score, S.away.score, sp.sets ? S.home.sets + '-' + S.away.sets : ''].join('|');
+  if (rs.dataset.key !== key) {
+    rs.dataset.key = key;
+    rs.innerHTML = `<i style="background:${S.home.color}"></i>${SB.esc(SB.code(S.home))} <span>${S.home.score} – ${S.away.score}</span> ${SB.esc(SB.code(S.away))}<i style="background:${S.away.color}"></i>`;
+  }
+  setReplay(shown('replay') || Date.now() < replayUntil);
+}
+
+// Transition demandée par la régie ou le Stream Deck (antenne.wipe.id augmente)
+let lastWipe = null;
+function onScene(a) {
+  A = a;
+  if (lastWipe !== null && A.wipe.id !== lastWipe && PROGRAM) wipeTo(A.wipe.style, A.wipe.scene);
+  lastWipe = A.wipe.id;
+  render();
+}
+
+(async () => {
+  await SB.loadSports();
+  SB.watch('score', st => { S = SB.fixScore(st || SB.newScore()); render(); }, 1000);
+  SB.watch('infos', st => { live = st; render(); });
+  SB.watchScene(onScene);
+  SB.watchLook(() => render());
+  SB.onEdit(() => render());
+  // comptes à rebours, et fin de l'affichage automatique du replay
+  setInterval(() => {
+    if (!I) return;
+    setText('sCountV', until(I.ecran.time));
+    if (replayUntil && Date.now() >= replayUntil) { replayUntil = 0; render(); }
+  }, 250);
+  // aperçu d'une transition depuis l'onglet Habillage : window.testWipe('rideau')
+  window.testWipe = style => playWipe(style);
+})();
+</script>
+</body>
+</html>

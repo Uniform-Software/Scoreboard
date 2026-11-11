@@ -3,6 +3,10 @@ data/*.json
 data/*.lock
 data/*.tmp
 
+# Images envoyées depuis la régie
+uploads/*
+!uploads/.htaccess
+
 # Mots de passe
 .htpasswd
 
